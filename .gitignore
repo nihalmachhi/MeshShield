@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+data/generated/*.jsonl
+data/generated/*.json
+data/generated/*.csv
+data/generated/*.sqlite3
+!data/generated/.gitkeep

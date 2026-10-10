@@ -1,0 +1,28 @@
+"""Delayed, duplicate, and out-of-order offline queue simulation."""
+
+from meshshield.domain import SyncEvent
+
+
+def simulate_delivery(events: list[SyncEvent], duplicate_every: int = 17) -> list[SyncEvent]:
+    delivered: list[SyncEvent] = []
+    for index, event in enumerate(events):
+        delivered.append(event)
+        if duplicate_every and index % duplicate_every == 0:
+            delivered.append(event)
+    # A small deterministic swap models a delayed/out-of-order network delivery.
+    for index in range(0, len(delivered) - 1, 23):
+        delivered[index], delivered[index + 1] = delivered[index + 1], delivered[index]
+    return delivered
+
+
+def process_delivery(events: list[SyncEvent], store) -> dict[str, int]:
+    accepted = duplicates = invalid = 0
+    for event in events:
+        if not event.signature_valid:
+            invalid += 1
+        elif store.accept(event):
+            accepted += 1
+        else:
+            duplicates += 1
+    return {"delivered": len(events), "accepted": accepted,
+            "duplicate_deliveries_ignored": duplicates, "invalid_signatures_rejected": invalid}
