@@ -4,6 +4,23 @@ MeshShield is a local, synthetic research simulator for risk review in an offlin
 
 > **Synthetic research prototype.** It does not authorize, settle, or move money. Its labels are generated scenarios rather than verified fraud. Do not use its scores to make real payment or account decisions.
 
+## How it works
+
+A payment is scored using only information available at its event time. Offline delivery integrity is evaluated separately so a suspicious signature or duplicate sync cannot be hidden inside a model score.
+
+```mermaid
+flowchart LR
+  A[Seeded synthetic payments] --> B[Offline queue and sync events]
+  B --> C[Integrity checks and SQLite idempotency]
+  C --> D[Event-time feature builder]
+  D --> E[Rules and transaction and graph models]
+  E --> F[Holdout evaluation]
+  E --> G[Local review API and dashboard]
+  F --> G
+```
+
+The generator creates reproducible synthetic transactions. The sync simulator delivers events late, out of order, or more than once; storage accepts each event ID once. Features are computed in event-time order without using future labels. The dashboard presents scores and evidence alongside holdout metrics. Scores are research signals from synthetic data, not real fraud probabilities.
+
 ## Run locally
 
 Requires Python 3.11 or newer. The application uses only the Python standard library and has no external runtime dependencies.
@@ -18,8 +35,6 @@ py -3 -m venv .venv
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000). On macOS/Linux, use `python3 -m venv .venv`, activate it with `source .venv/bin/activate`, then run `PYTHONPATH=src python -m meshshield.cli demo` and `PYTHONPATH=src python -m meshshield.cli serve`.
 
 The PowerShell runner sets the local source path and starts the Python CLI without installing packages. The project root is also the working directory for generated artifacts.
-
-The delivered walkthrough PDF is in `output/pdf/`. To rebuild it from the current measured run, install the optional documentation dependency with `python -m pip install reportlab`, then run `python scripts/build_guide.py`. ReportLab is only needed for PDF generation, not to run MeshShield.
 
 ## Commands
 
@@ -69,3 +84,5 @@ The server binds to `127.0.0.1` by default. Keep it local; it has no authenticat
 This generator is deliberately simple. Scenario patterns are visible to the data creator, generated accounts are not real people, and the synthetic distribution cannot establish real-world performance. The current 0.5 threshold is only a demo default. Select review thresholds for a target capacity and measure false-positive burden. The Brier score does not claim the model is calibrated. Before any research with real data, obtain authorization, minimize sensitive fields, define ground truth with domain experts, assess subgroup impacts, monitor temporal drift, and perform independent validation. Production payment use would need a separate security, privacy, reliability, legal, and model-risk review.
 
 See [docs/evaluation.md](docs/evaluation.md), [docs/synthetic-data.md](docs/synthetic-data.md), and [docs/threat-model.md](docs/threat-model.md) before extending the simulator.
+
+
