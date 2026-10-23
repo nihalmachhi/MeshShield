@@ -2,7 +2,7 @@
   <img src="assets/readme-icon.png" alt="MeshShield icon" width="112" />
 </p>
 
-# MeshShield
+<h1 align="center">MeshShield</h1>
 
 MeshShield is a local, synthetic research simulator for risk review in an offline payment network. It generates payment and sync events, checks event integrity, calculates time-aware transaction and relationship features, compares a logistic-regression baseline to a graph-feature model and simple rules, and serves a small browser dashboard.
 
