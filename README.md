@@ -13,14 +13,22 @@ MeshShield is a local, synthetic research simulator for risk review in an offlin
 A payment is scored using only information available at its event time. Offline delivery integrity is evaluated separately so a suspicious signature or duplicate sync cannot be hidden inside a model score.
 
 ```mermaid
-flowchart LR
-  A[Seeded synthetic payments] --> B[Offline queue and sync events]
-  B --> C[Integrity checks and SQLite idempotency]
-  C --> D[Event-time feature builder]
-  D --> E[Rules and transaction and graph models]
-  E --> F[Holdout evaluation]
-  E --> G[Local review API and dashboard]
-  F --> G
+flowchart TD
+  A[Synthetic payment scenarios] --> B[Payment and relationship events]
+  B --> C[Offline device queue]
+  C --> D[Sync delivery: late, duplicate, or out of order]
+  D --> E[Integrity checks and event-ID idempotency]
+  E --> F[(SQLite event store)]
+  F --> G[Event-time transaction features]
+  F --> H[Event-time relationship features]
+  G --> I[Rules and logistic-regression baseline]
+  H --> J[Graph-feature model]
+  I --> K[Time-aware holdout evaluation]
+  J --> K
+  K --> L[Scores with evidence and evaluation metrics]
+  L --> M[Local review API]
+  M --> N[Browser dashboard]
+  K -. research metrics .-> N
 ```
 
 The generator creates reproducible synthetic transactions. The sync simulator delivers events late, out of order, or more than once; storage accepts each event ID once. Features are computed in event-time order without using future labels. The dashboard presents scores and evidence alongside holdout metrics. Scores are research signals from synthetic data, not real fraud probabilities.
