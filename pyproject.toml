@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["cryptography>=42", "mypy>=1.10", "pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6"]
+dev = ["cryptography>=42", "mypy>=1.10", "pytest>=8.0", "pytest-cov>=5.0", "reportlab>=4.0", "ruff>=0.6"]
 data = ["kaggle>=1.6"]
 crypto = ["cryptography>=42"]
 graph = ["torch>=2.2", "torch-geometric>=2.5"]

@@ -18,7 +18,7 @@ from reportlab.platypus import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "output" / "pdf" / "MeshShield_How_It_Works.pdf"
+OUT = ROOT / "docs" / "MeshShield_How_It_Works.pdf"
 METRICS = json.loads((ROOT / "data" / "generated" / "metrics.json").read_text(encoding="utf-8"))
 CARD = json.loads((ROOT / "data" / "generated" / "dataset_card.json").read_text(encoding="utf-8"))
 INK = colors.HexColor("#14243a")
