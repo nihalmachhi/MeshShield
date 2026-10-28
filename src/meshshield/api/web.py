@@ -3,19 +3,20 @@
 import json
 import logging
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from meshshield.config import DATABASE_FILE, EVENTS_FILE, FRONTEND_DIR
-from meshshield.domain import SyncEvent
-from meshshield.features import build_features
-from meshshield.pipeline import load_or_prepare, score_transaction
-from meshshield.simulator import process_delivery, simulate_delivery
-from meshshield.storage import IdempotencyStore, read_jsonl
+from meshshield.core.domain import SyncEvent
+from meshshield.core.pipeline import load_or_prepare, score_transaction
+from meshshield.data.storage import IdempotencyStore, read_jsonl
+from meshshield.features.build import build_features
+from meshshield.sync.simulator import process_delivery, simulate_delivery
 
 logger = logging.getLogger(__name__)
 
 
-def create_handler():
+def create_handler() -> type[BaseHTTPRequestHandler]:
     transactions, metrics, model = load_or_prepare()
     by_id = {tx.transaction_id: tx for tx in transactions}
     arrival_index = {tx.transaction_id: index for index, tx in enumerate(transactions)}
@@ -27,7 +28,7 @@ def create_handler():
     delivery_store.close()
 
     class Handler(BaseHTTPRequestHandler):
-        def _send(self, body: bytes, content_type: str, status: int = 200):
+        def _send(self, body: bytes, content_type: str, status: int = 200) -> None:
             self.send_response(status)
             self.send_header("Content-Type", content_type)
             self.send_header("Cache-Control", "no-store")
@@ -35,17 +36,17 @@ def create_handler():
             self.end_headers()
             self.wfile.write(body)
 
-        def _json(self, value, status: int = 200):
+        def _json(self, value: Any, status: int = 200) -> None:
             self._send(json.dumps(value).encode("utf-8"), "application/json; charset=utf-8", status)
 
-        def do_GET(self):
+        def do_GET(self) -> None:
             try:
                 self._handle_get()
             except Exception as exc:
                 logger.exception("GET request failed: %s", type(exc).__name__)
                 self._json({"error": "internal server error"}, 500)
 
-        def _handle_get(self):
+        def _handle_get(self) -> None:
             path = urlparse(self.path).path
             if path == "/":
                 self._send((FRONTEND_DIR / "index.html").read_bytes(), "text/html; charset=utf-8")
@@ -80,26 +81,26 @@ def create_handler():
                 self._json(scored)
             elif path.startswith("/api/transactions/"):
                 transaction_id = path.rsplit("/", 1)[-1]
-                tx = by_id.get(transaction_id)
-                if tx is None:
+                found_tx = by_id.get(transaction_id)
+                if found_tx is None:
                     self._json({"error": "transaction not found"}, 404)
                 else:
                     prior = transactions[:arrival_index[transaction_id]]
                     self._json(score_transaction(
-                        tx, prior, model, feature_rows,
+                        found_tx, prior, model, feature_rows,
                         {item.transaction_id for item in prior},
                         {item.event_id for item in prior}))
             else:
                 self._json({"error": "not found"}, 404)
 
-        def do_POST(self):
+        def do_POST(self) -> None:
             try:
                 self._handle_post()
             except Exception as exc:
                 logger.exception("POST request failed: %s", type(exc).__name__)
                 self._json({"error": "internal server error"}, 500)
 
-        def _handle_post(self):
+        def _handle_post(self) -> None:
             if urlparse(self.path).path != "/api/replay":
                 self._json({"error": "not found"}, 404)
                 return
@@ -113,14 +114,14 @@ def create_handler():
             self._json({"event_id": event.event_id, "first_delivery_accepted": first,
                         "retry_accepted": second, "idempotency_working": first and not second})
 
-        def log_message(self, format, *args):
+        def log_message(self, format: str, *args: object) -> None:
             message = format % args if args else format
             logger.info("%s %s", self.log_date_time_string(), message)
 
     return Handler
 
 
-def serve(host: str = "127.0.0.1", port: int = 8000):
+def serve(host: str = "127.0.0.1", port: int = 8000) -> None:
     server = ThreadingHTTPServer((host, port), create_handler())
     print(f"MeshShield review UI: http://{host}:{port} (synthetic research data only)")
     try:

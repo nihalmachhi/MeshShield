@@ -1,6 +1,12 @@
 """Delayed, duplicate, and out-of-order offline queue simulation."""
 
-from meshshield.domain import SyncEvent
+from typing import Protocol
+
+from meshshield.core.domain import SyncEvent
+
+
+class EventStore(Protocol):
+    def accept(self, event: SyncEvent) -> bool: ...
 
 
 def simulate_delivery(events: list[SyncEvent], duplicate_every: int = 17) -> list[SyncEvent]:
@@ -15,7 +21,7 @@ def simulate_delivery(events: list[SyncEvent], duplicate_every: int = 17) -> lis
     return delivered
 
 
-def process_delivery(events: list[SyncEvent], store) -> dict[str, int]:
+def process_delivery(events: list[SyncEvent], store: EventStore) -> dict[str, int]:
     accepted = duplicates = invalid = 0
     for event in events:
         if not event.signature_valid:

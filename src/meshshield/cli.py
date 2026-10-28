@@ -3,15 +3,15 @@
 import argparse
 import json
 
+from meshshield.api.web import serve
 from meshshield.config import DEFAULT_SEED, DEFAULT_TRANSACTION_COUNT, EVENTS_FILE
-from meshshield.domain import SyncEvent
-from meshshield.pipeline import generate_dataset, load_or_prepare, train_and_evaluate
-from meshshield.simulator import process_delivery, simulate_delivery
-from meshshield.storage import IdempotencyStore, read_jsonl
-from meshshield.web import serve
+from meshshield.core.domain import SyncEvent
+from meshshield.core.pipeline import generate_dataset, load_or_prepare, train_and_evaluate
+from meshshield.data.storage import IdempotencyStore, read_jsonl
+from meshshield.sync.simulator import process_delivery, simulate_delivery
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(prog="meshshield", description="Synthetic offline payment risk research simulator")
     commands = parser.add_subparsers(dest="command", required=True)
     generate_cmd = commands.add_parser("generate", help="Generate a reproducible synthetic dataset")

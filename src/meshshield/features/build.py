@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from itertools import groupby
 
 from meshshield.config import FEATURES, GRAPH_FEATURES
-from meshshield.domain import Transaction, parse_timestamp
+from meshshield.core.domain import Transaction, parse_timestamp
 
 
 def _time(value: str) -> datetime:

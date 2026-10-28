@@ -77,7 +77,7 @@ The server binds to `127.0.0.1` by default. Keep it local; it has no authenticat
 
 ## Design notes
 
-- **Small components:** data contracts, generation, feature computation, model, evaluation, sync simulation, persistence, pipeline, CLI, and web UI have separate modules under `src/meshshield/`.
+- **Small components:** see [the architecture guide](docs/ARCHITECTURE.md) for package boundaries and the runtime flow under `src/meshshield/`.
 - **Reproducibility:** fixed seeds and a dataset card record data origin and scenario limitations.
 - **Causal order:** event time and ingestion time stay distinct. Features use earlier event-time history; labels and later investigation outcomes never enter the feature vector.
 - **Auditable evidence:** hard integrity findings are distinct from model associations. Contributions are not causal explanations.
@@ -87,10 +87,10 @@ The server binds to `127.0.0.1` by default. Keep it local; it has no authenticat
 
 This generator is deliberately simple. Scenario patterns are visible to the data creator, generated accounts are not real people, and the synthetic distribution cannot establish real-world performance. The current 0.5 threshold is only a demo default. Select review thresholds for a target capacity and measure false-positive burden. The Brier score does not claim the model is calibrated. Before any research with real data, obtain authorization, minimize sensitive fields, define ground truth with domain experts, assess subgroup impacts, monitor temporal drift, and perform independent validation. Production payment use would need a separate security, privacy, reliability, legal, and model-risk review.
 
-See [docs/evaluation.md](docs/evaluation.md), [docs/synthetic-data.md](docs/synthetic-data.md), and [docs/threat-model.md](docs/threat-model.md) before extending the simulator.
+See [docs/evaluation.md](docs/evaluation.md), [docs/synthetic-data.md](docs/synthetic-data.md), and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) before extending the simulator.
 
 ## Engineering update
 
-The current hardening pass fixes request logging and query errors, serializes concurrent SQLite idempotency writes, uses the configured sync-event path, and rejects repeated event IDs in arrival history. Feature rows are computed once for dashboard requests and use only strictly earlier event-time groups. The training report now separates model-only performance from the integrity-aware review pipeline. The dependency-free logistic baseline uses balanced class weights, correctly scaled L2 regularization, and a convergence stop. Seven focused tests pass locally, including future-feature leakage, concurrent duplicate delivery, replay detection, invalid limits, and zero-positive evaluation. These tests validate simulator behavior only; they do not establish fraud detection performance.
+The current hardening pass fixes request logging and query errors, serializes concurrent SQLite idempotency writes, uses the configured sync-event path, and rejects repeated event IDs in arrival history. Feature rows are computed once for dashboard requests and use only strictly earlier event-time groups. The training report now separates model-only performance from the integrity-aware review pipeline. The dependency-free logistic baseline uses balanced class weights, correctly scaled L2 regularization, and a convergence stop. Seven focused tests pass locally, including future-feature leakage, concurrent duplicate delivery, replay detection, invalid limits, and zero-positive evaluation. The source is now split by responsibility; Ruff and mypy report no issues, and `python -m meshshield.cli demo` completes locally. These checks validate simulator behavior only; they do not establish fraud detection performance.
 
 

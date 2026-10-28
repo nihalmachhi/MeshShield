@@ -3,7 +3,7 @@
 import random
 from datetime import UTC, datetime, timedelta
 
-from meshshield.domain import SyncEvent, Transaction
+from meshshield.core.domain import SyncEvent, Transaction
 
 SCENARIOS = ("normal", "high_amount", "shared_device", "replay_attempt", "invalid_signature")
 

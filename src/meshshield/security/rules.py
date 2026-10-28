@@ -2,7 +2,7 @@
 
 from itertools import pairwise
 
-from meshshield.domain import SyncEvent, Transaction, parse_timestamp
+from meshshield.core.domain import SyncEvent, Transaction, parse_timestamp
 
 
 def inspect_transaction(tx: Transaction, seen_transaction_ids: set[str] | None = None,

@@ -12,13 +12,13 @@ from meshshield.config import (
     MODEL_FILE,
     TRANSACTIONS_FILE,
 )
-from meshshield.domain import SyncEvent, Transaction, parse_timestamp
-from meshshield.evaluation import evaluate, split_index
-from meshshield.features import build_features, vector
-from meshshield.generator import generate
-from meshshield.model import LogisticModel, feature_names
-from meshshield.rules import inspect_event_order, inspect_transaction
-from meshshield.storage import load_transactions, read_jsonl, write_jsonl
+from meshshield.core.domain import SyncEvent, Transaction, parse_timestamp
+from meshshield.data.generator import generate
+from meshshield.data.storage import load_transactions, read_jsonl, write_jsonl
+from meshshield.eval.metrics import evaluate, split_index
+from meshshield.features.build import build_features, vector
+from meshshield.models.logistic import LogisticModel, feature_names
+from meshshield.security.rules import inspect_event_order, inspect_transaction
 
 
 def generate_dataset(count: int = DEFAULT_TRANSACTION_COUNT, seed: int = DEFAULT_SEED) -> dict:
@@ -112,7 +112,7 @@ def train_and_evaluate() -> dict:
     return metrics
 
 
-def load_events():
+def load_events() -> list[SyncEvent]:
     return [SyncEvent(**row) for row in read_jsonl(EVENTS_FILE)]
 
 
@@ -145,7 +145,7 @@ def score_transaction(tx: Transaction, known: list[Transaction], model: Logistic
     }
     contributions = model.contributions(vector(row))
     reasons = [reason_map[item] for item in findings if item in reason_map]
-    reasons.extend(f"{item['feature'].replace('_', ' ')} contributed to the model score"
+    reasons.extend(f"{str(item['feature']).replace('_', ' ')} contributed to the model score"
                    for item in contributions if float(item["contribution"]) > 0)
     return {"transaction_id": tx.transaction_id, "risk_score": round(probability, 4),
             "risk_percent": round(probability * 100, 1),

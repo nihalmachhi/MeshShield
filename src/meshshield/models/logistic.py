@@ -1,8 +1,11 @@
 """Dependency-free standardized logistic regression for a transparent baseline."""
 
+from __future__ import annotations
+
 import json
 import math
 from pathlib import Path
+from typing import Any
 
 from meshshield.config import FEATURES, GRAPH_FEATURES
 
@@ -21,7 +24,7 @@ class LogisticModel:
     @classmethod
     def fit(cls, rows: list[list[float]], labels: list[int], feature_names: tuple[str, ...],
             epochs: int = 700, learning_rate: float = 0.08, regularization: float = 0.015,
-            tolerance: float = 1e-7, patience: int = 12):
+            tolerance: float = 1e-7, patience: int = 12) -> LogisticModel:
         if not rows or len(rows) != len(labels) or len(set(labels)) < 2:
             raise ValueError("Training data needs matching rows and both label classes.")
         if any(label not in (0, 1) for label in labels):
@@ -70,17 +73,20 @@ class LogisticModel:
         return _sigmoid(self.bias + sum(w * x for w, x in zip(self.weights, normalized)))
 
     def contributions(self, values: list[float], limit: int = 4) -> list[dict[str, float | str]]:
-        items = [{"feature": name, "contribution": weight * (value - mean) / scale}
-                 for name, value, mean, scale, weight in zip(
-                     self.feature_names, values, self.means, self.scales, self.weights)]
-        return sorted(items, key=lambda item: abs(float(item["contribution"])), reverse=True)[:limit]
+        items: list[dict[str, float | str]] = []
+        for name, value, mean, scale, weight in zip(
+                self.feature_names, values, self.means, self.scales, self.weights):
+            items.append({"feature": name, "contribution": weight * (value - mean) / scale})
+        return sorted(items, key=lambda item: abs(item["contribution"])
+                      if isinstance(item["contribution"], float) else 0.0,
+                      reverse=True)[:limit]
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {"feature_names": list(self.feature_names), "means": self.means,
                 "scales": self.scales, "weights": self.weights, "bias": self.bias}
 
     @classmethod
-    def from_dict(cls, value: dict):
+    def from_dict(cls, value: dict[str, Any]) -> LogisticModel:
         return cls(tuple(value["feature_names"]), value["means"], value["scales"],
                    value["weights"], value["bias"])
 
@@ -89,7 +95,7 @@ class LogisticModel:
         path.write_text(json.dumps(self.to_dict(), indent=2), encoding="utf-8")
 
     @classmethod
-    def load(cls, path: Path):
+    def load(cls, path: Path) -> LogisticModel:
         return cls.from_dict(json.loads(path.read_text(encoding="utf-8")))
 
 

@@ -6,7 +6,7 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from threading import RLock
 
-from meshshield.domain import SyncEvent, Transaction
+from meshshield.core.domain import SyncEvent, Transaction
 
 
 def write_jsonl(path: Path, rows: Iterable[dict]) -> None:
