@@ -1,3 +1,10 @@
+FROM node:22-alpine AS site-build
+WORKDIR /site
+COPY site/package.json site/package-lock.json ./
+RUN npm ci
+COPY site ./
+RUN npm run build
+
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -7,7 +14,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
-COPY frontend ./frontend
+COPY --from=site-build /site/dist ./site/dist
 RUN python -m pip install --no-cache-dir . \
     && mkdir -p /app/data/generated \
     && groupadd --system meshshield \

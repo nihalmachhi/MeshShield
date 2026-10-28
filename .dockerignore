@@ -18,8 +18,6 @@ output
 outputs
 tmp
 tests
-docs
-site
 scripts
 *.sqlite
 *.sqlite3

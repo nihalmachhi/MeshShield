@@ -72,6 +72,9 @@ def test_web_rejects_bad_limit_and_surfaces_replay(monkeypatch, tmp_path: Path):
         handler.path = path
         captured = []
         handler._json = lambda payload, status=200: captured.append((payload, status))
+        handler._send = lambda body, content_type, status=200: captured.append(
+            ((body.decode("utf-8"), content_type), status)
+        )
         handler.do_GET()
         return captured[-1]
 
@@ -83,6 +86,14 @@ def test_web_rejects_bad_limit_and_surfaces_replay(monkeypatch, tmp_path: Path):
     assert "replayed_event_id" in payload[1]["integrity_findings"]
     payload, status = request("/api/health")
     assert status == 200 and payload["status"] == "ok"
+    site = tmp_path / "site"
+    site.mkdir()
+    (site / "index.html").write_text("<div id='root'></div>", encoding="utf-8")
+    monkeypatch.setattr(web, "SITE_DIR", site)
+    payload, status = request("/")
+    assert status == 200
+    payload, status = request("/../../events.jsonl")
+    assert status == 404
     monkeypatch.setattr(
         web, "score_transaction", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError())
     )

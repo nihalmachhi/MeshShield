@@ -9,14 +9,14 @@ def _project_root() -> Path:
     if configured_root:
         return Path(configured_root).expanduser().resolve()
     for candidate in (Path.cwd(), *Path.cwd().parents):
-        if (candidate / "pyproject.toml").is_file() and (candidate / "frontend").is_dir():
+        if (candidate / "pyproject.toml").is_file() and (candidate / "site").is_dir():
             return candidate
     return Path(__file__).resolve().parents[2]
 
 
 PROJECT_ROOT = _project_root()
 DATA_DIR = PROJECT_ROOT / "data" / "generated"
-FRONTEND_DIR = PROJECT_ROOT / "frontend"
+SITE_DIR = PROJECT_ROOT / "site" / "dist"
 TRANSACTIONS_FILE = DATA_DIR / "transactions.jsonl"
 EVENTS_FILE = DATA_DIR / "sync_events.jsonl"
 MODEL_FILE = DATA_DIR / "model.json"

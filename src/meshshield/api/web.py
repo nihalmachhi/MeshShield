@@ -2,11 +2,13 @@
 
 import json
 import logging
+import mimetypes
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
-from meshshield.config import DATABASE_FILE, EVENTS_FILE, FRONTEND_DIR
+from meshshield.config import DATABASE_FILE, EVENTS_FILE, SITE_DIR
 from meshshield.core.domain import SyncEvent
 from meshshield.core.pipeline import load_or_prepare, score_transaction
 from meshshield.data.storage import IdempotencyStore, read_jsonl
@@ -48,9 +50,7 @@ def create_handler() -> type[BaseHTTPRequestHandler]:
 
         def _handle_get(self) -> None:
             path = urlparse(self.path).path
-            if path == "/":
-                self._send((FRONTEND_DIR / "index.html").read_bytes(), "text/html; charset=utf-8")
-            elif path == "/api/health":
+            if path == "/api/health":
                 self._json({"status": "ok", "synthetic_only": True})
             elif path == "/api/metrics":
                 self._json({"metrics": metrics, "sync_simulation": delivery_summary})
@@ -107,8 +107,28 @@ def create_handler() -> type[BaseHTTPRequestHandler]:
                             threshold,
                         )
                     )
-            else:
+            elif path.startswith("/api/"):
                 self._json({"error": "not found"}, 404)
+            else:
+                requested = unquote(path).lstrip("/") or "index.html"
+                target = (SITE_DIR / requested).resolve()
+                if not target.is_relative_to(SITE_DIR.resolve()):
+                    self._json({"error": "not found"}, 404)
+                    return
+                if not target.is_file() and "." not in Path(requested).name:
+                    target = SITE_DIR / "index.html"
+                if not target.is_file():
+                    self._json(
+                        {"error": "React site is not built; run npm --prefix site run build"}, 503
+                    )
+                    return
+                content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+                if content_type.startswith("text/") or content_type in {
+                    "application/javascript",
+                    "application/json",
+                }:
+                    content_type += "; charset=utf-8"
+                self._send(target.read_bytes(), content_type)
 
         def do_POST(self) -> None:
             try:

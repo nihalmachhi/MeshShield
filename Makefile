@@ -1,4 +1,4 @@
-.PHONY: install lint format typecheck test run bench
+.PHONY: install lint format typecheck test run bench site-install site-build
 
 install:
 	python -m pip install -e ".[dev]"
@@ -22,3 +22,9 @@ run:
 
 bench:
 	python scripts/benchmark.py
+
+site-install:
+	npm ci --prefix site
+
+site-build:
+	npm run build --prefix site
