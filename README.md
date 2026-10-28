@@ -63,6 +63,8 @@ Generated files are under `data/generated/`: JSON Lines transactions and sync ev
 
 See [docs/system-model.md](docs/system-model.md) for component boundaries, [docs/feature-contract.md](docs/feature-contract.md) for time and feature semantics, and [docs/how-it-works.md](docs/how-it-works.md) for the guided project walkthrough.
 
+Optional public-data adapters and download terms are documented in [docs/public-datasets.md](docs/public-datasets.md). The default app continues to use only the built-in synthetic data; external datasets are not downloaded or included automatically.
+
 ## Local API
 
 | Route | Description |
@@ -85,12 +87,12 @@ The server binds to `127.0.0.1` by default. Keep it local; it has no authenticat
 
 ## Limitations and next steps
 
-This generator is deliberately simple. Scenario patterns are visible to the data creator, generated accounts are not real people, and the synthetic distribution cannot establish real-world performance. The current 0.5 threshold is only a demo default. Select review thresholds for a target capacity and measure false-positive burden. The Brier score does not claim the model is calibrated. Before any research with real data, obtain authorization, minimize sensitive fields, define ground truth with domain experts, assess subgroup impacts, monitor temporal drift, and perform independent validation. Production payment use would need a separate security, privacy, reliability, legal, and model-risk review.
+This generator is deliberately simple. Scenario patterns are visible to the data creator, generated accounts are not real people, and the synthetic distribution cannot establish real-world performance. The demo now calibrates on a separate synthetic time interval and selects a threshold under illustrative costs and review capacity; none of those assumptions are operational recommendations. Calibration on synthetic labels does not establish calibration on real transactions. Before any research with real data, obtain authorization, minimize sensitive fields, define ground truth with domain experts, assess subgroup impacts, monitor temporal drift, and perform independent validation. Production payment use would need a separate security, privacy, reliability, legal, and model-risk review.
 
 See [docs/evaluation.md](docs/evaluation.md), [docs/synthetic-data.md](docs/synthetic-data.md), and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) before extending the simulator.
 
 ## Engineering update
 
-The current hardening pass fixes request logging and query errors, serializes concurrent SQLite idempotency writes, uses the configured sync-event path, and rejects repeated event IDs in arrival history. Feature rows are computed once for dashboard requests and use only strictly earlier event-time groups. The training report now separates model-only performance from the integrity-aware review pipeline. The dependency-free logistic baseline uses balanced class weights, correctly scaled L2 regularization, and a convergence stop. Seven focused tests pass locally, including future-feature leakage, concurrent duplicate delivery, replay detection, invalid limits, and zero-positive evaluation. The source is now split by responsibility; Ruff and mypy report no issues, and `python -m meshshield.cli demo` completes locally. These checks validate simulator behavior only; they do not establish fraud detection performance.
+The current engineering pass fixes request handling and event integrity, uses point-in-time features, and separates raw model, calibrated model, and integrity-aware pipeline results. The default baseline remains dependency-free; optional GraphSAGE, XGBoost, Isolation Forest, Ed25519, and dataset adapters are opt-in. The report includes a chronological calibration interval, explicit illustrative review capacity/cost inputs, and PSI drift diagnostics. See the measured synthetic-only run and its limits in [the evaluation report](docs/evaluation.md). The source is split by responsibility; Ruff and mypy pass. Passing tests exercise deterministic simulator behavior and optional dependency failure paths; they do not establish fraud detection performance.
 
 

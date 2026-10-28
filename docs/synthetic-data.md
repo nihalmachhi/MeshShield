@@ -28,3 +28,5 @@ Education, local demos, feature pipeline development, and repeatable code experi
 ## Known limitations
 
 The generator has a small fixed actor population and hand-authored scenario patterns. Labels are perfectly linked to those scenario definitions. Real activity is more diverse, adaptive, and ambiguous. The distribution has no independently adjudicated outcomes, protected-group assessment, or real deployment feedback. Dataset size and model scores are demonstrations only.
+
+For optional external research inputs and their distinct terms, see [public dataset access](public-datasets.md). External CSV files are not mixed into the synthetic generator's scores.

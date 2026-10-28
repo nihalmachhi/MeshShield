@@ -28,4 +28,4 @@ Follow the setup in the repository README. `demo` regenerates the data and metri
 
 ## What this demo does not prove
 
-The data is invented, and the positive labels come from the generator itself. A model that recognizes these labels has not proven it can detect real fraud. Thresholds are illustrative; performance, calibration, fairness, and false-positive impact have not been validated for a real payment environment. No real money is moved and no payment is approved or declined.
+The data is invented, and the positive labels come from the generator itself. A model that recognizes these labels has not proven it can detect real fraud. The threshold is selected from a separate synthetic calibration interval using example cost and review-capacity values; those inputs are not operational recommendations. Performance, calibration, fairness, and false-positive impact have not been validated for a real payment environment. No real money is moved and no payment is approved or declined.

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_handler() -> type[BaseHTTPRequestHandler]:
-    transactions, metrics, model = load_or_prepare()
+    transactions, metrics, model, calibrator, threshold = load_or_prepare()
     by_id = {tx.transaction_id: tx for tx in transactions}
     arrival_index = {tx.transaction_id: index for index, tx in enumerate(transactions)}
     feature_rows = build_features(transactions)
@@ -70,11 +70,20 @@ def create_handler() -> type[BaseHTTPRequestHandler]:
                 seen_tx: set[str] = set()
                 seen_events: set[str] = set()
                 for tx in transactions[:limit]:
-                    item = score_transaction(tx, [], model, feature_rows, seen_tx, seen_events)
-                    item.update({"amount": tx.amount, "account_id": tx.account_id,
-                                 "device_id": tx.device_id, "merchant_id": tx.merchant_id,
-                                 "event_time": tx.event_time, "label": tx.label,
-                                 "scenario": tx.scenario})
+                    item = score_transaction(
+                        tx, [], model, feature_rows, seen_tx, seen_events, calibrator, threshold
+                    )
+                    item.update(
+                        {
+                            "amount": tx.amount,
+                            "account_id": tx.account_id,
+                            "device_id": tx.device_id,
+                            "merchant_id": tx.merchant_id,
+                            "event_time": tx.event_time,
+                            "label": tx.label,
+                            "scenario": tx.scenario,
+                        }
+                    )
                     scored.append(item)
                     seen_tx.add(tx.transaction_id)
                     seen_events.add(tx.event_id)
@@ -85,11 +94,19 @@ def create_handler() -> type[BaseHTTPRequestHandler]:
                 if found_tx is None:
                     self._json({"error": "transaction not found"}, 404)
                 else:
-                    prior = transactions[:arrival_index[transaction_id]]
-                    self._json(score_transaction(
-                        found_tx, prior, model, feature_rows,
-                        {item.transaction_id for item in prior},
-                        {item.event_id for item in prior}))
+                    prior = transactions[: arrival_index[transaction_id]]
+                    self._json(
+                        score_transaction(
+                            found_tx,
+                            prior,
+                            model,
+                            feature_rows,
+                            {item.transaction_id for item in prior},
+                            {item.event_id for item in prior},
+                            calibrator,
+                            threshold,
+                        )
+                    )
             else:
                 self._json({"error": "not found"}, 404)
 
@@ -106,13 +123,25 @@ def create_handler() -> type[BaseHTTPRequestHandler]:
                 return
             original = next(event for event in events if event.signature_valid)
             # Re-deliver the same identifier; SQLite rejects the second arrival.
-            event = SyncEvent(original.event_id, original.transaction_id,
-                              original.event_time, original.ingestion_time,
-                              original.source, original.sequence, original.signature_valid)
+            event = SyncEvent(
+                original.event_id,
+                original.transaction_id,
+                original.event_time,
+                original.ingestion_time,
+                original.source,
+                original.sequence,
+                original.signature_valid,
+            )
             first = store.accept(event)
             second = store.accept(event)
-            self._json({"event_id": event.event_id, "first_delivery_accepted": first,
-                        "retry_accepted": second, "idempotency_working": first and not second})
+            self._json(
+                {
+                    "event_id": event.event_id,
+                    "first_delivery_accepted": first,
+                    "retry_accepted": second,
+                    "idempotency_working": first and not second,
+                }
+            )
 
         def log_message(self, format: str, *args: object) -> None:
             message = format % args if args else format

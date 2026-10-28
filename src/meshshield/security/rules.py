@@ -5,8 +5,11 @@ from itertools import pairwise
 from meshshield.core.domain import SyncEvent, Transaction, parse_timestamp
 
 
-def inspect_transaction(tx: Transaction, seen_transaction_ids: set[str] | None = None,
-                        seen_event_ids: set[str] | None = None) -> list[str]:
+def inspect_transaction(
+    tx: Transaction,
+    seen_transaction_ids: set[str] | None = None,
+    seen_event_ids: set[str] | None = None,
+) -> list[str]:
     seen_transaction_ids = seen_transaction_ids if seen_transaction_ids is not None else set()
     seen_event_ids = seen_event_ids if seen_event_ids is not None else set()
     findings: list[str] = []
@@ -28,11 +31,15 @@ def inspect_event_order(events: list[SyncEvent]) -> list[str]:
         findings.append("duplicate_sequence")
     if any(value < 0 for value in sequences):
         findings.append("negative_sequence")
-    if any(parse_timestamp(event.ingestion_time) < parse_timestamp(event.event_time)
-           for event in events):
+    if any(
+        parse_timestamp(event.ingestion_time) < parse_timestamp(event.event_time)
+        for event in events
+    ):
         findings.append("ingestion_before_event_time")
     by_sequence = sorted(events, key=lambda event: event.sequence)
-    if any(parse_timestamp(left.event_time) > parse_timestamp(right.event_time)
-           for left, right in pairwise(by_sequence)):
+    if any(
+        parse_timestamp(left.event_time) > parse_timestamp(right.event_time)
+        for left, right in pairwise(by_sequence)
+    ):
         findings.append("event_time_regressed_with_sequence")
     return findings

@@ -30,5 +30,9 @@ def process_delivery(events: list[SyncEvent], store: EventStore) -> dict[str, in
             accepted += 1
         else:
             duplicates += 1
-    return {"delivered": len(events), "accepted": accepted,
-            "duplicate_deliveries_ignored": duplicates, "invalid_signatures_rejected": invalid}
+    return {
+        "delivered": len(events),
+        "accepted": accepted,
+        "duplicate_deliveries_ignored": duplicates,
+        "invalid_signatures_rejected": invalid,
+    }

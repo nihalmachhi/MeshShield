@@ -5,18 +5,19 @@ import sqlite3
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from threading import RLock
+from typing import Any
 
 from meshshield.core.domain import SyncEvent, Transaction
 
 
-def write_jsonl(path: Path, rows: Iterable[dict]) -> None:
+def write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="\n") as stream:
         for row in rows:
             stream.write(json.dumps(row, separators=(",", ":"), sort_keys=True) + "\n")
 
 
-def read_jsonl(path: Path) -> Iterator[dict]:
+def read_jsonl(path: Path) -> Iterator[dict[str, Any]]:
     if not path.exists():
         return
     with path.open(encoding="utf-8") as stream:

@@ -14,6 +14,10 @@ The current assets are local synthetic records, generated model parameters, and 
 
 These are demonstrations, not cryptographic verification. No signing keys or signatures are implemented. A Boolean `signature_valid` value is trusted input from the simulator.
 
+An optional Ed25519 helper can sign canonical payloads when the `crypto` extra is installed. It is a utility, not wired into production authentication or secure key storage. The sync merge helper reports different payloads that reuse an event ID and marks those IDs for quarantine. It does not resolve a payment balance or prevent double-spending across disconnected devices.
+
+The federated averaging helper performs ordinary sample-weighted parameter averaging. It does not provide secure aggregation, differential privacy, client authentication, or robustness against malicious clients.
+
 ## Application boundary
 
 The local HTTP service has no authentication, authorization, TLS, CSRF protection, or rate limiting. It binds to `127.0.0.1` by default. Do not bind it to a public or shared network. If the prototype is ever extended to handle authorized data, add access control, encryption, retention limits, audit controls, privacy review, and secure key management before integration.

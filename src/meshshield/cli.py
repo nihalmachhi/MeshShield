@@ -12,7 +12,9 @@ from meshshield.sync.simulator import process_delivery, simulate_delivery
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="meshshield", description="Synthetic offline payment risk research simulator")
+    parser = argparse.ArgumentParser(
+        prog="meshshield", description="Synthetic offline payment risk research simulator"
+    )
     commands = parser.add_subparsers(dest="command", required=True)
     generate_cmd = commands.add_parser("generate", help="Generate a reproducible synthetic dataset")
     generate_cmd.add_argument("--count", type=int, default=DEFAULT_TRANSACTION_COUNT)
@@ -29,7 +31,7 @@ def main() -> None:
     elif args.command == "train":
         print(json.dumps(train_and_evaluate(), indent=2))
     elif args.command == "evaluate":
-        _, metrics, _ = load_or_prepare()
+        _, metrics, _, _, _ = load_or_prepare()
         print(json.dumps(metrics, indent=2))
     elif args.command == "demo":
         card = generate_dataset()

@@ -9,6 +9,7 @@ def event(event_id: str, transaction_id: str, sequence: int) -> SyncEvent:
     stamp = "2025-01-01T00:00:00Z"
     return SyncEvent(event_id, transaction_id, stamp, stamp, "test", sequence, True)
 
+
 def test_sqlite_idempotency_is_safe_for_concurrent_requests(tmp_path: Path):
     store = IdempotencyStore(tmp_path / "events.sqlite3")
     try:

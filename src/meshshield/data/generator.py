@@ -8,7 +8,9 @@ from meshshield.core.domain import SyncEvent, Transaction
 SCENARIOS = ("normal", "high_amount", "shared_device", "replay_attempt", "invalid_signature")
 
 
-def generate(count: int, seed: int, start: datetime | None = None) -> tuple[list[Transaction], list[SyncEvent]]:
+def generate(
+    count: int, seed: int, start: datetime | None = None
+) -> tuple[list[Transaction], list[SyncEvent]]:
     if count < 100:
         raise ValueError("Generate at least 100 transactions for a meaningful time split.")
     rng = random.Random(seed)
@@ -43,16 +45,32 @@ def generate(count: int, seed: int, start: datetime | None = None) -> tuple[list
             event_id = rng.choice(events).event_id
             if rng.random() < 0.25:
                 signature_valid = False
-        transactions.append(Transaction(
-            transaction_id=tx_id, account_id=account, device_id=device,
-            merchant_id=rng.choice(merchants), amount=amount, currency="USD",
-            event_time=event_at.isoformat().replace("+00:00", "Z"),
-            ingestion_time=ingested_at.isoformat().replace("+00:00", "Z"),
-            offline_duration_minutes=offline_minutes, signature_valid=signature_valid,
-            event_id=event_id,
-            label=int(scenario != "normal"), scenario=scenario,
-        ))
-        events.append(SyncEvent(event_id, tx_id, transactions[-1].event_time,
-                                transactions[-1].ingestion_time, "synthetic-device", index,
-                                signature_valid))
+        transactions.append(
+            Transaction(
+                transaction_id=tx_id,
+                account_id=account,
+                device_id=device,
+                merchant_id=rng.choice(merchants),
+                amount=amount,
+                currency="USD",
+                event_time=event_at.isoformat().replace("+00:00", "Z"),
+                ingestion_time=ingested_at.isoformat().replace("+00:00", "Z"),
+                offline_duration_minutes=offline_minutes,
+                signature_valid=signature_valid,
+                event_id=event_id,
+                label=int(scenario != "normal"),
+                scenario=scenario,
+            )
+        )
+        events.append(
+            SyncEvent(
+                event_id,
+                tx_id,
+                transactions[-1].event_time,
+                transactions[-1].ingestion_time,
+                "synthetic-device",
+                index,
+                signature_valid,
+            )
+        )
     return transactions, events
