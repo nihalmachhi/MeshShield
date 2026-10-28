@@ -30,6 +30,16 @@ jobs:
       - name: Demo smoke test
         run: python -m meshshield.cli demo
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Build React site
+        run: npm ci --prefix site && npm run build --prefix site
+      - name: Check React formatting
+        run: npm run format:check --prefix site
+
   docker:
     runs-on: ubuntu-latest
     steps:

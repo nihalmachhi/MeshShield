@@ -1,0 +1,140 @@
+@media (max-width: 850px) {
+  .nav {
+    display: none;
+  }
+  .tools {
+    margin-left: auto;
+  }
+  .sim-grid {
+    grid-template-columns: 1fr;
+  }
+  .step-grid {
+    grid-template-columns: 1fr;
+  }
+  .result-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .quick-start {
+    grid-template-columns: 1fr;
+  }
+  .quick-start .section-intro {
+    max-width: 650px;
+  }
+}
+@media (max-width: 560px) {
+  .wrap {
+    width: min(100% - 28px, 1120px);
+  }
+  .top-inner {
+    height: 60px;
+    gap: 10px;
+  }
+  .brand {
+    font-size: 0.95rem;
+  }
+  .brand-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .tools {
+    gap: 5px;
+  }
+  .button {
+    min-height: 36px;
+    padding-inline: 10px;
+    font-size: 0.72rem;
+  }
+  .hero {
+    padding: 76px 0 48px;
+  }
+  .hero h1 {
+    font-size: clamp(2.35rem, 11vw, 3.1rem);
+  }
+  .demo-heading {
+    display: block;
+  }
+  .demo-heading > p {
+    margin-top: 12px;
+  }
+  .simulator {
+    padding: 9px;
+    border-radius: 17px;
+  }
+  .sim-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .stat-row {
+    gap: 13px;
+  }
+  .controls {
+    align-items: stretch;
+  }
+  .mode-list {
+    border-radius: 12px;
+  }
+  .mode-list button {
+    flex: 1;
+  }
+  .control-actions button {
+    flex: 1;
+  }
+  .sim-grid {
+    gap: 8px;
+  }
+  .sim-card {
+    padding: 12px;
+  }
+  .queue-stats {
+    gap: 10px;
+    font-size: 0.62rem;
+  }
+  .feed-top {
+    gap: 5px;
+  }
+  .feed-top b {
+    font-size: 0.61rem;
+  }
+  .feed li p {
+    margin-left: 0;
+  }
+  .device-list {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fact-list div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .result-grid {
+    grid-template-columns: 1fr;
+  }
+  .quote-card {
+    padding: 22px;
+  }
+  .mini-timeline {
+    gap: 5px;
+    font-size: 0.58rem;
+  }
+  .mini-timeline i {
+    width: 12px;
+  }
+  footer {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer p {
+    order: 3;
+    width: 100%;
+    flex-basis: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
