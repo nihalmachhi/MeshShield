@@ -16,7 +16,7 @@
 | `normal` | 0 | Typical generated amount, account/device assignment, and sync delay. |
 | `high_amount` | 1 | Larger amount drawn from an elevated range. |
 | `shared_device` | 1 | Multiple accounts are assigned to a small device pool. |
-| `replay_attempt` | 1 | Longer offline delay; sync event may be delivered more than once by the transport simulator. |
+| `replay_attempt` | 1 | Reuses an earlier event ID with a new transaction payload, may flip the simulated signature-invalid flag, and has a longer offline delay; the transport simulator may also redeliver it. |
 | `invalid_signature` | 1 | Signature verification outcome is false in the simulation. |
 
 The default generator selects the normal scenario roughly 84% of the time; the scenario mixture is controlled in `generator.py`. Sampling and overlaps are stochastic. Always read counts from the generated dataset card rather than assuming exact proportions.

@@ -40,15 +40,18 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000). On macOS/Linux, use `python
 
 The PowerShell runner sets the local source path and starts the Python CLI without installing packages. The project root is also the working directory for generated artifacts.
 
+With Docker Desktop, `docker compose up --build` runs the local dashboard at [http://127.0.0.1:8000](http://127.0.0.1:8000). The container publishes only to localhost and keeps generated state in a Docker volume. Stop it with `docker compose down`.
+
 ## Commands
 
 | Command | Purpose |
 | --- | --- |
 | `.\scripts\run.ps1 generate --count 1600 --seed 2025` | Write a deterministic synthetic dataset and dataset card. |
-| `.\scripts\run.ps1 train` | Fit the models on the earlier 80% and compare them on the later 20%. |
+| `.\scripts\run.ps1 train` | Fit on the first 64% of event time, calibrate on the next 16%, and report the final 20% holdout. |
 | `.\scripts\run.ps1 evaluate` | Print the saved holdout metrics. |
 | `.\scripts\run.ps1 demo` | Regenerate the default data, train both models, evaluate, and simulate delayed/duplicate delivery. |
 | `.\scripts\run.ps1 serve --port 8000` | Start the local review UI and JSON API. |
+| `python scripts/benchmark.py --count 1600 --seed 2025` | Measure one synthetic generate/train run and save a local JSON report under `output/benchmarks/`. |
 
 Generated files are under `data/generated/`: JSON Lines transactions and sync events, a dataset card, model parameters, holdout metrics, and a SQLite idempotency table. These reproducible outputs are ignored by Git so the source repository stays small. The default seed is `2025`.
 
@@ -59,7 +62,7 @@ Generated files are under `data/generated/`: JSON Lines transactions and sync ev
 3. Sync delivery can arrive late, out of sequence, or more than once. SQLite accepts each event ID once. Invalid simulated signatures are rejected.
 4. The feature builder walks transactions in event-time order. For each transaction it calculates account and merchant velocity, device reuse, delayed-sync duration, time-of-day, and past transaction counts before adding the current event to history.
 5. A standardized logistic regression estimates a synthetic risk score. Model contribution values show which inputs push the score up or down. Integrity findings are kept separate and can independently route a transaction to review.
-6. The evaluation split uses the earliest 80% for training and latest 20% for evaluation. The dashboard compares graph features, transaction-only features, and simple rules with precision, recall, F1, average precision, Brier score, and confusion counts.
+6. The earliest 80% event-time block is split into model fitting and calibration; the latest 20% is the final holdout. The dashboard compares graph features, transaction-only features, and simple rules with precision, recall, F1, average precision, Brier score, and confusion counts.
 
 See [docs/system-model.md](docs/system-model.md) for component boundaries, [docs/feature-contract.md](docs/feature-contract.md) for time and feature semantics, and [docs/how-it-works.md](docs/how-it-works.md) for the guided project walkthrough.
 
@@ -90,6 +93,10 @@ The server binds to `127.0.0.1` by default. Keep it local; it has no authenticat
 This generator is deliberately simple. Scenario patterns are visible to the data creator, generated accounts are not real people, and the synthetic distribution cannot establish real-world performance. The demo now calibrates on a separate synthetic time interval and selects a threshold under illustrative costs and review capacity; none of those assumptions are operational recommendations. Calibration on synthetic labels does not establish calibration on real transactions. Before any research with real data, obtain authorization, minimize sensitive fields, define ground truth with domain experts, assess subgroup impacts, monitor temporal drift, and perform independent validation. Production payment use would need a separate security, privacy, reliability, legal, and model-risk review.
 
 See [docs/evaluation.md](docs/evaluation.md), [docs/synthetic-data.md](docs/synthetic-data.md), and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) before extending the simulator.
+
+## License
+
+The MeshShield source code is MIT licensed. External datasets retain their own terms; see [the dataset guide](docs/public-datasets.md). No external dataset is included in this repository.
 
 ## Engineering update
 

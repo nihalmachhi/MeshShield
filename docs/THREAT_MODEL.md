@@ -12,7 +12,7 @@ The current assets are local synthetic records, generated model parameters, and 
 - Late and out-of-order synchronization.
 - Shared-device relationships, high amounts, and bursts as synthetic risk patterns.
 
-These are demonstrations, not cryptographic verification. No signing keys or signatures are implemented. A Boolean `signature_valid` value is trusted input from the simulator.
+The built-in scenarios are demonstrations, not cryptographic verification. The default sync path trusts a Boolean `signature_valid` value from the simulator; it does not verify payload signatures end to end.
 
 An optional Ed25519 helper can sign canonical payloads when the `crypto` extra is installed. It is a utility, not wired into production authentication or secure key storage. The sync merge helper reports different payloads that reuse an event ID and marks those IDs for quarantine. It does not resolve a payment balance or prevent double-spending across disconnected devices.
 

@@ -1,0 +1,14 @@
+.git
+.venv
+__pycache__
+*.py[cod]
+.env*
+.kaggle
+kaggle.json
+data/raw
+data/external
+data/generated
+output
+outputs
+tests
+SKILL.md

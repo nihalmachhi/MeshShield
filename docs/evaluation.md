@@ -33,12 +33,14 @@ This is one local run of seed `2025` on the built-in generator, not a real-data 
 
 The calibration interval selected a 9.77% review rate under the 10% cap and the illustrative 1:5 cost ratio. The final holdout review rate was 10.31%, showing that capacity does not transfer exactly across periods. The pipeline's higher average precision is due in part to simulator integrity signals linked to generator scenarios; it should not be read as a stronger production model.
 
+The latest local benchmark measured one generate-and-train run at 3.6548 seconds, or 437.78 generated rows per second, for the same 1,600-row seed-2025 synthetic dataset on Windows with Python 3.13.7. A preceding run measured 3.6047 seconds (443.87 rows/second), illustrating normal single-run timing variation. These are not controlled hardware comparisons or request-serving throughput measurements. Re-run `python scripts/benchmark.py` on the target machine for a new measurement; its JSON output is ignored by Git.
+
 ## Current gaps
 
 - No cross-validation, confidence intervals, independent labels, or real-world validation.
 - No subgroup analysis, uncertainty intervals, unseen-pattern evaluation, or adversarial adaptation experiment.
 - No externally supplied dataset has been downloaded or evaluated in this repository. See [public dataset terms and adapters](public-datasets.md).
 - The generator and its labels are known; scenario holdout must be added before making stronger generalization claims.
-- No throughput benchmark has been measured.
+- No repeated benchmark trials, standardized hardware comparisons, or service latency/throughput measurements have been run.
 
 Use the stored seed and dataset card to reproduce the demo. Report actual generated counts and metrics; do not copy example numbers from a prior run.
