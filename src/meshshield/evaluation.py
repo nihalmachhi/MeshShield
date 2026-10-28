@@ -1,6 +1,12 @@
 """Metrics for an imbalanced binary classification problem."""
 
 def evaluate(labels: list[int], scores: list[float], threshold: float = 0.5) -> dict:
+    if len(labels) != len(scores):
+        raise ValueError("labels and scores must have the same length")
+    if any(label not in (0, 1) for label in labels):
+        raise ValueError("labels must contain only 0 or 1")
+    if not 0 <= threshold <= 1 or any(not 0 <= score <= 1 for score in scores):
+        raise ValueError("threshold and scores must be between 0 and 1")
     tp = sum(y == 1 and p >= threshold for y, p in zip(labels, scores))
     fp = sum(y == 0 and p >= threshold for y, p in zip(labels, scores))
     fn = sum(y == 1 and p < threshold for y, p in zip(labels, scores))

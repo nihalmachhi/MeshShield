@@ -1,7 +1,7 @@
 """Seeded generator for explicitly synthetic payment and sync events."""
 
-from datetime import datetime, timedelta, timezone
 import random
+from datetime import UTC, datetime, timedelta
 
 from meshshield.domain import SyncEvent, Transaction
 
@@ -12,7 +12,7 @@ def generate(count: int, seed: int, start: datetime | None = None) -> tuple[list
     if count < 100:
         raise ValueError("Generate at least 100 transactions for a meaningful time split.")
     rng = random.Random(seed)
-    origin = start or datetime(2025, 1, 1, tzinfo=timezone.utc)
+    origin = start or datetime(2025, 1, 1, tzinfo=UTC)
     accounts = [f"acct_{i:04d}" for i in range(240)]
     devices = [f"device_{i:04d}" for i in range(200)]
     merchants = [f"merchant_{i:03d}" for i in range(45)]
@@ -39,6 +39,10 @@ def generate(count: int, seed: int, start: datetime | None = None) -> tuple[list
         ingested_at = event_at + timedelta(minutes=offline_minutes)
         tx_id = f"txn_{index:07d}"
         event_id = f"evt_{index:07d}"
+        if scenario == "replay_attempt" and events:
+            event_id = rng.choice(events).event_id
+            if rng.random() < 0.25:
+                signature_valid = False
         transactions.append(Transaction(
             transaction_id=tx_id, account_id=account, device_id=device,
             merchant_id=rng.choice(merchants), amount=amount, currency="USD",

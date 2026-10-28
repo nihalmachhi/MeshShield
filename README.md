@@ -89,4 +89,8 @@ This generator is deliberately simple. Scenario patterns are visible to the data
 
 See [docs/evaluation.md](docs/evaluation.md), [docs/synthetic-data.md](docs/synthetic-data.md), and [docs/threat-model.md](docs/threat-model.md) before extending the simulator.
 
+## Engineering update
+
+The current hardening pass fixes request logging and query errors, serializes concurrent SQLite idempotency writes, uses the configured sync-event path, and rejects repeated event IDs in arrival history. Feature rows are computed once for dashboard requests and use only strictly earlier event-time groups. The training report now separates model-only performance from the integrity-aware review pipeline. The dependency-free logistic baseline uses balanced class weights, correctly scaled L2 regularization, and a convergence stop. Seven focused tests pass locally, including future-feature leakage, concurrent duplicate delivery, replay detection, invalid limits, and zero-positive evaluation. These tests validate simulator behavior only; they do not establish fraud detection performance.
+
 

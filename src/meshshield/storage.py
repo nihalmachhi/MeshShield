@@ -2,8 +2,9 @@
 
 import json
 import sqlite3
+from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import Iterable, Iterator
+from threading import RLock
 
 from meshshield.domain import SyncEvent, Transaction
 
@@ -34,22 +35,25 @@ class IdempotencyStore:
         path = str(path)
         if path != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(path)
+        self.connection = sqlite3.connect(path, check_same_thread=False)
+        self._lock = RLock()
         self.connection.execute(
             "CREATE TABLE IF NOT EXISTS processed_events (event_id TEXT PRIMARY KEY, transaction_id TEXT NOT NULL, accepted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
         )
         self.connection.commit()
 
     def accept(self, event: SyncEvent) -> bool:
-        cursor = self.connection.execute(
-            "INSERT OR IGNORE INTO processed_events(event_id, transaction_id) VALUES (?, ?)",
-            (event.event_id, event.transaction_id),
-        )
-        self.connection.commit()
-        return cursor.rowcount == 1
+        with self._lock:
+            cursor = self.connection.execute(
+                "INSERT OR IGNORE INTO processed_events(event_id, transaction_id) VALUES (?, ?)",
+                (event.event_id, event.transaction_id),
+            )
+            self.connection.commit()
+            return cursor.rowcount == 1
 
     def close(self) -> None:
-        self.connection.close()
+        with self._lock:
+            self.connection.close()
 
 
 def load_transactions(path: Path) -> list[Transaction]:

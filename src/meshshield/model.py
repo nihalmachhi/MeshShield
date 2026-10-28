@@ -20,9 +20,12 @@ class LogisticModel:
 
     @classmethod
     def fit(cls, rows: list[list[float]], labels: list[int], feature_names: tuple[str, ...],
-            epochs: int = 700, learning_rate: float = 0.08, regularization: float = 0.015):
+            epochs: int = 700, learning_rate: float = 0.08, regularization: float = 0.015,
+            tolerance: float = 1e-7, patience: int = 12):
         if not rows or len(rows) != len(labels) or len(set(labels)) < 2:
             raise ValueError("Training data needs matching rows and both label classes.")
+        if any(label not in (0, 1) for label in labels):
+            raise ValueError("labels must contain only 0 or 1")
         width = len(feature_names)
         means = [sum(row[j] for row in rows) / len(rows) for j in range(width)]
         scales = []
@@ -30,19 +33,36 @@ class LogisticModel:
             variance = sum((row[j] - means[j]) ** 2 for row in rows) / len(rows)
             scales.append(math.sqrt(variance) or 1.0)
         normalized = [[(row[j] - means[j]) / scales[j] for j in range(width)] for row in rows]
+        class_counts = {label: labels.count(label) for label in (0, 1)}
+        sample_weights = [len(labels) / (2 * class_counts[label]) for label in labels]
+        weight_total = sum(sample_weights)
         weights, bias = [0.0] * width, 0.0
+        previous_loss = float("inf")
+        stable_epochs = 0
         for epoch in range(epochs):
             grad = [0.0] * width
             grad_bias = 0.0
-            for row, label in zip(normalized, labels):
+            loss = 0.0
+            for row, label, sample_weight in zip(normalized, labels, sample_weights):
                 error = _sigmoid(bias + sum(w * x for w, x in zip(weights, row))) - label
-                grad_bias += error
+                probability = min(max(error + label, 1e-15), 1 - 1e-15)
+                loss -= sample_weight * (label * math.log(probability) +
+                                         (1 - label) * math.log(1 - probability))
+                grad_bias += sample_weight * error
                 for j, value in enumerate(row):
-                    grad[j] += error * value
-            step = learning_rate / len(labels)
+                    grad[j] += sample_weight * error * value
+            loss = loss / weight_total + 0.5 * regularization * sum(w * w for w in weights)
+            step = learning_rate
             for j in range(width):
-                weights[j] -= step * (grad[j] + regularization * weights[j])
-            bias -= step * grad_bias
+                weights[j] -= step * (grad[j] / weight_total + regularization * weights[j])
+            bias -= step * grad_bias / weight_total
+            if abs(previous_loss - loss) < tolerance:
+                stable_epochs += 1
+                if stable_epochs >= patience:
+                    break
+            else:
+                stable_epochs = 0
+            previous_loss = loss
         return cls(feature_names, means, scales, weights, bias)
 
     def score(self, values: list[float]) -> float:

@@ -1,23 +1,26 @@
 """Minimal local review UI and JSON API using only Python's standard library."""
 
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
-from pathlib import Path
-import uuid
-from urllib.parse import urlparse
+import logging
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
 
-from meshshield.config import DATABASE_FILE, FRONTEND_DIR
-from meshshield.domain import SyncEvent, Transaction
+from meshshield.config import DATABASE_FILE, EVENTS_FILE, FRONTEND_DIR
+from meshshield.domain import SyncEvent
+from meshshield.features import build_features
 from meshshield.pipeline import load_or_prepare, score_transaction
 from meshshield.simulator import process_delivery, simulate_delivery
-from meshshield.storage import IdempotencyStore
+from meshshield.storage import IdempotencyStore, read_jsonl
+
+logger = logging.getLogger(__name__)
 
 
 def create_handler():
     transactions, metrics, model = load_or_prepare()
     by_id = {tx.transaction_id: tx for tx in transactions}
-    events = [SyncEvent(**row) for row in (json.loads(line) for line in
-              (Path(__file__).resolve().parents[2] / "data/generated/sync_events.jsonl").read_text(encoding="utf-8").splitlines())]
+    arrival_index = {tx.transaction_id: index for index, tx in enumerate(transactions)}
+    feature_rows = build_features(transactions)
+    events = [SyncEvent(**row) for row in read_jsonl(EVENTS_FILE)]
     store = IdempotencyStore(DATABASE_FILE)
     delivery_store = IdempotencyStore(":memory:")
     delivery_summary = process_delivery(simulate_delivery(events), delivery_store)
@@ -36,6 +39,13 @@ def create_handler():
             self._send(json.dumps(value).encode("utf-8"), "application/json; charset=utf-8", status)
 
         def do_GET(self):
+            try:
+                self._handle_get()
+            except Exception as exc:
+                logger.exception("GET request failed: %s", type(exc).__name__)
+                self._json({"error": "internal server error"}, 500)
+
+        def _handle_get(self):
             path = urlparse(self.path).path
             if path == "/":
                 self._send((FRONTEND_DIR / "index.html").read_bytes(), "text/html; charset=utf-8")
@@ -44,24 +54,29 @@ def create_handler():
             elif path == "/api/metrics":
                 self._json({"metrics": metrics, "sync_simulation": delivery_summary})
             elif path == "/api/transactions":
-                query = urlparse(self.path).query
+                query = parse_qs(urlparse(self.path).query, keep_blank_values=True)
                 limit = 100
-                for part in query.split("&"):
-                    if part.startswith("limit="):
-                        limit = max(1, min(500, int(part[6:])))
+                if "limit" in query:
+                    raw_limit = query["limit"]
+                    if len(raw_limit) != 1 or not raw_limit[0].isdigit():
+                        self._json({"error": "limit must be an integer between 1 and 500"}, 400)
+                        return
+                    limit = int(raw_limit[0])
+                    if not 1 <= limit <= 500:
+                        self._json({"error": "limit must be an integer between 1 and 500"}, 400)
+                        return
                 scored = []
+                seen_tx: set[str] = set()
+                seen_events: set[str] = set()
                 for tx in transactions[:limit]:
-                    # Feature construction is point-in-time; pass the full historical set
-                    # so only events earlier than this transaction enter its feature row.
-                    prior = [other for other in transactions
-                             if other.transaction_id != tx.transaction_id
-                             and other.event_time < tx.event_time]
-                    item = score_transaction(tx, prior, model)
+                    item = score_transaction(tx, [], model, feature_rows, seen_tx, seen_events)
                     item.update({"amount": tx.amount, "account_id": tx.account_id,
                                  "device_id": tx.device_id, "merchant_id": tx.merchant_id,
                                  "event_time": tx.event_time, "label": tx.label,
                                  "scenario": tx.scenario})
                     scored.append(item)
+                    seen_tx.add(tx.transaction_id)
+                    seen_events.add(tx.event_id)
                 self._json(scored)
             elif path.startswith("/api/transactions/"):
                 transaction_id = path.rsplit("/", 1)[-1]
@@ -69,30 +84,38 @@ def create_handler():
                 if tx is None:
                     self._json({"error": "transaction not found"}, 404)
                 else:
-                    prior = [other for other in transactions
-                             if other.transaction_id != tx.transaction_id
-                             and other.event_time < tx.event_time]
-                    self._json(score_transaction(tx, prior, model))
+                    prior = transactions[:arrival_index[transaction_id]]
+                    self._json(score_transaction(
+                        tx, prior, model, feature_rows,
+                        {item.transaction_id for item in prior},
+                        {item.event_id for item in prior}))
             else:
                 self._json({"error": "not found"}, 404)
 
         def do_POST(self):
+            try:
+                self._handle_post()
+            except Exception as exc:
+                logger.exception("POST request failed: %s", type(exc).__name__)
+                self._json({"error": "internal server error"}, 500)
+
+        def _handle_post(self):
             if urlparse(self.path).path != "/api/replay":
                 self._json({"error": "not found"}, 404)
                 return
             original = next(event for event in events if event.signature_valid)
-            # Give each button click a fresh local demo event while keeping the
-            # repeated delivery within this request exactly idempotent.
-            event = SyncEvent(f"replay_demo_{uuid.uuid4().hex}", original.transaction_id,
+            # Re-deliver the same identifier; SQLite rejects the second arrival.
+            event = SyncEvent(original.event_id, original.transaction_id,
                               original.event_time, original.ingestion_time,
-                              original.source, original.sequence, True)
+                              original.source, original.sequence, original.signature_valid)
             first = store.accept(event)
             second = store.accept(event)
             self._json({"event_id": event.event_id, "first_delivery_accepted": first,
                         "retry_accepted": second, "idempotency_working": first and not second})
 
         def log_message(self, format, *args):
-            print(f"{self.log_date_time_string()} {args[0] % args[1:]}")
+            message = format % args if args else format
+            logger.info("%s %s", self.log_date_time_string(), message)
 
     return Handler
 

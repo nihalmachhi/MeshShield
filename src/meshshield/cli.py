@@ -3,11 +3,10 @@
 import argparse
 import json
 
-from meshshield.config import DEFAULT_SEED, DEFAULT_TRANSACTION_COUNT
+from meshshield.config import DEFAULT_SEED, DEFAULT_TRANSACTION_COUNT, EVENTS_FILE
+from meshshield.domain import SyncEvent
 from meshshield.pipeline import generate_dataset, load_or_prepare, train_and_evaluate
 from meshshield.simulator import process_delivery, simulate_delivery
-from meshshield.domain import SyncEvent
-from meshshield.config import EVENTS_FILE
 from meshshield.storage import IdempotencyStore, read_jsonl
 from meshshield.web import serve
 

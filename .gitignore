@@ -2,6 +2,16 @@ __pycache__/
 *.py[cod]
 .venv/
 .pytest_cache/
+.pytest_tmp/
+.env
+.env.*
+!.env.example
+data/raw/
+data/external/
+*.pcap
+*.pcapng
+*.pem
+*.key
 data/generated/*.jsonl
 data/generated/*.json
 data/generated/*.csv

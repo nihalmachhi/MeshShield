@@ -1,8 +1,16 @@
 """Core data contracts. All timestamps are UTC ISO-8601 strings."""
 
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
+
+
+def parse_timestamp(value: str) -> datetime:
+    """Parse ISO-8601 timestamps and normalize them to UTC for ordering."""
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        raise ValueError("timestamps must include a timezone")
+    return parsed.astimezone(UTC)
 
 
 @dataclass(frozen=True)
@@ -30,8 +38,10 @@ class Transaction:
             raise ValueError("offline duration cannot be negative")
         if self.label not in (None, 0, 1):
             raise ValueError("label must be 0, 1, or null")
-        datetime.fromisoformat(self.event_time.replace("Z", "+00:00"))
-        datetime.fromisoformat(self.ingestion_time.replace("Z", "+00:00"))
+        event_time = parse_timestamp(self.event_time)
+        ingestion_time = parse_timestamp(self.ingestion_time)
+        if ingestion_time < event_time:
+            raise ValueError("ingestion_time cannot be earlier than event_time")
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
