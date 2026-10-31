@@ -7,6 +7,8 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"*.{js,json,html}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"*.{js,json,html}\""
   },
@@ -15,8 +17,10 @@
     "react-dom": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@vitejs/plugin-react": "latest",
     "prettier": "^3.9.10",
-    "vite": "latest"
+    "vite": "latest",
+    "vitest": "^2.1.8"
   }
 }
