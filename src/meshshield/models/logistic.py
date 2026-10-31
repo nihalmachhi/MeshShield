@@ -16,6 +16,8 @@ def _sigmoid(value: float) -> float:
 
 
 class LogisticModel:
+    kind = "logistic"
+
     def __init__(
         self,
         feature_names: tuple[str, ...],
@@ -115,6 +117,7 @@ class LogisticModel:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "kind": self.kind,
             "feature_names": list(self.feature_names),
             "means": self.means,
             "scales": self.scales,

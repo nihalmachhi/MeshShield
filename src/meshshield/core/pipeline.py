@@ -12,6 +12,8 @@ from meshshield.config import (
     EVENTS_FILE,
     FALSE_NEGATIVE_COST,
     FALSE_POSITIVE_COST,
+    FEATURES,
+    GRAPH_FEATURES,
     METRICS_FILE,
     MODEL_FILE,
     REVIEW_CAPACITY,
@@ -24,7 +26,7 @@ from meshshield.eval.calibration import PlattCalibrator, fit_platt, select_cost_
 from meshshield.eval.drift import population_stability_index
 from meshshield.eval.metrics import evaluate, split_index
 from meshshield.features.build import build_features, vector
-from meshshield.models.logistic import LogisticModel, feature_names
+from meshshield.models.registry import available_models, create_model, load_model, save_model
 from meshshield.security.rules import inspect_event_order, inspect_transaction
 
 
@@ -111,7 +113,7 @@ def split_chronologically(
     return ordered[:cut], ordered[cut:]
 
 
-def train_and_evaluate() -> dict[str, Any]:
+def train_and_evaluate(model_name: str = "logistic") -> dict[str, Any]:
     transactions = load_transactions(TRANSACTIONS_FILE)
     if len(transactions) < 100:
         raise ValueError("Dataset missing or too small. Run `meshshield generate` first.")
@@ -121,13 +123,17 @@ def train_and_evaluate() -> dict[str, Any]:
     calibration_cut = split_index(len(train), 0.8)
     model_train, calibration = train[:calibration_cut], train[calibration_cut:]
     labels_train = [int(tx.label or 0) for tx in model_train]
-    graph_model = LogisticModel.fit(
-        [vector(features[t.transaction_id]) for t in model_train], labels_train, feature_names(True)
+    graph_model = create_model(
+        model_name,
+        [vector(features[t.transaction_id]) for t in model_train],
+        labels_train,
+        GRAPH_FEATURES,
     )
-    base_model = LogisticModel.fit(
+    base_model = create_model(
+        model_name,
         [vector(features[t.transaction_id], graph=False) for t in model_train],
         labels_train,
-        feature_names(False),
+        FEATURES,
     )
     labels_calibration = [int(tx.label or 0) for tx in calibration]
     calibration_scores = [
@@ -190,7 +196,7 @@ def train_and_evaluate() -> dict[str, Any]:
                 [features[tx.transaction_id][name] for tx in train],
                 [features[tx.transaction_id][name] for tx in test],
             )
-            for name in feature_names(True)
+            for name in GRAPH_FEATURES
         },
         "threshold_policy": {
             **threshold_policy,
@@ -203,10 +209,15 @@ def train_and_evaluate() -> dict[str, Any]:
             "The cost weights and capacity are explicit demo assumptions, "
             "not operational recommendations."
         ),
+        "model_selection": {
+            "selected": model_name,
+            "catalog": available_models(),
+            "note": "Every model uses the same split, features and calibration policy.",
+        },
     }
     MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
-    graph_model.save(MODEL_FILE)
-    base_model.save(DATA_DIR / "baseline_model.json")
+    save_model(graph_model, MODEL_FILE)
+    save_model(base_model, DATA_DIR / "baseline_model.json")
     CALIBRATION_FILE.write_text(
         json.dumps(
             {
@@ -227,7 +238,7 @@ def load_events() -> list[SyncEvent]:
 
 
 def load_or_prepare() -> tuple[
-    list[Transaction], dict[str, Any], LogisticModel, PlattCalibrator, float
+    list[Transaction], dict[str, Any], Any, PlattCalibrator, float
 ]:
     if not TRANSACTIONS_FILE.exists():
         generate_dataset()
@@ -237,7 +248,7 @@ def load_or_prepare() -> tuple[
     return (
         load_transactions(TRANSACTIONS_FILE),
         json.loads(METRICS_FILE.read_text(encoding="utf-8")),
-        LogisticModel.load(MODEL_FILE),
+        load_model(MODEL_FILE),
         PlattCalibrator(calibration["slope"], calibration["intercept"]),
         calibration["threshold"],
     )
@@ -246,7 +257,7 @@ def load_or_prepare() -> tuple[
 def score_transaction(
     tx: Transaction,
     known: list[Transaction],
-    model: LogisticModel,
+    model: Any,
     feature_rows: dict[str, dict[str, float]] | None = None,
     seen_transaction_ids: set[str] | None = None,
     seen_event_ids: set[str] | None = None,

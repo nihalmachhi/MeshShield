@@ -8,6 +8,7 @@ from meshshield.config import DEFAULT_SEED, DEFAULT_TRANSACTION_COUNT, EVENTS_FI
 from meshshield.core.domain import SyncEvent
 from meshshield.core.pipeline import generate_dataset, load_or_prepare, train_and_evaluate
 from meshshield.data.storage import IdempotencyStore, read_jsonl
+from meshshield.models.registry import MODEL_CATALOG
 from meshshield.sync.simulator import process_delivery, simulate_delivery
 
 
@@ -31,9 +32,17 @@ def main() -> None:
         default=0.0,
         help="share of rows whose label is flipped (0 to 0.5)",
     )
-    commands.add_parser("train", help="Train and compare the baseline models")
+    train_cmd = commands.add_parser("train", help="Train and compare the baseline models")
+    train_cmd.add_argument(
+        "--model", choices=tuple(MODEL_CATALOG), default="logistic", help="model family to train"
+    )
     commands.add_parser("evaluate", help="Print the latest chronological holdout metrics")
-    commands.add_parser("demo", help="Run generation, model comparison, and sync replay summary")
+    demo_cmd = commands.add_parser(
+        "demo", help="Run generation, model comparison, and sync replay summary"
+    )
+    demo_cmd.add_argument(
+        "--model", choices=tuple(MODEL_CATALOG), default="logistic", help="model family to train"
+    )
     serve_cmd = commands.add_parser("serve", help="Start the local review dashboard")
     serve_cmd.add_argument("--host", default="127.0.0.1")
     serve_cmd.add_argument("--port", type=int, default=8000)
@@ -48,13 +57,13 @@ def main() -> None:
             )
         )
     elif args.command == "train":
-        print(json.dumps(train_and_evaluate(), indent=2))
+        print(json.dumps(train_and_evaluate(args.model), indent=2))
     elif args.command == "evaluate":
         _, metrics, _, _, _ = load_or_prepare()
         print(json.dumps(metrics, indent=2))
     elif args.command == "demo":
         card = generate_dataset()
-        metrics = train_and_evaluate()
+        metrics = train_and_evaluate(args.model)
         events = [SyncEvent(**row) for row in read_jsonl(EVENTS_FILE)]
         # Each demo run starts with a fresh store so the same seed gives the
         # same delivery summary; `serve` demonstrates persistent local storage.
