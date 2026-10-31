@@ -24,8 +24,16 @@ from meshshield.data.generator import generate
 from meshshield.data.storage import load_transactions, read_jsonl, write_jsonl
 from meshshield.eval.calibration import PlattCalibrator, fit_platt, select_cost_threshold
 from meshshield.eval.drift import population_stability_index
-from meshshield.eval.metrics import evaluate, split_index
+from meshshield.eval.metrics import (
+    average_precision,
+    bootstrap_ci,
+    evaluate,
+    paired_bootstrap_delta,
+    reliability_bins,
+    split_index,
+)
 from meshshield.features.build import build_features, vector
+from meshshield.features.graph import graph_summary
 from meshshield.models.registry import available_models, create_model, load_model, save_model
 from meshshield.security.rules import inspect_event_order, inspect_transaction
 
@@ -111,6 +119,47 @@ def split_chronologically(
     )
     cut = split_index(len(ordered), train_fraction)
     return ordered[:cut], ordered[cut:]
+
+
+ABLATION_GROUPS: dict[str, tuple[str, ...]] = {
+    "amount_and_time": ("log_amount", "hour_sin", "hour_cos"),
+    "velocity": ("account_velocity_1h", "merchant_velocity_1h", "account_transaction_count"),
+    "sync_delay": ("offline_duration_minutes", "is_delayed_sync"),
+    "graph_only": tuple(name for name in GRAPH_FEATURES if name not in FEATURES),
+    "transaction_only": FEATURES,
+    "graph_full": GRAPH_FEATURES,
+}
+
+
+def _ablation(
+    features: dict[str, dict[str, float]],
+    train: list[Transaction],
+    test: list[Transaction],
+    labels_train: list[int],
+) -> dict[str, Any]:
+    """Retrain the same logistic model on nested feature groups."""
+    y_test = [int(tx.label or 0) for tx in test]
+    groups: dict[str, Any] = {}
+    for name, columns in ABLATION_GROUPS.items():
+        model = create_model(
+            "logistic",
+            [[features[tx.transaction_id][column] for column in columns] for tx in train],
+            labels_train,
+            columns,
+        )
+        scores = [
+            model.score([features[tx.transaction_id][column] for column in columns])
+            for tx in test
+        ]
+        groups[name] = {"features": list(columns), **evaluate(y_test, scores)}
+    return {
+        "model": "logistic",
+        "groups": groups,
+        "note": (
+            "Nested feature groups, same chronological split and training seed. "
+            "The small holdout makes these differences noisy."
+        ),
+    }
 
 
 def train_and_evaluate(model_name: str = "logistic") -> dict[str, Any]:
@@ -215,6 +264,46 @@ def train_and_evaluate(model_name: str = "logistic") -> dict[str, Any]:
             "note": "Every model uses the same split, features and calibration policy.",
         },
     }
+    ablation = _ablation(features, model_train, test, labels_train)
+    metrics["evaluation_extras"] = {
+        "bootstrap_95pct": {
+            "pr_auc_graph": bootstrap_ci(y_test, graph_scores, average_precision),
+            "pr_auc_non_graph": bootstrap_ci(y_test, base_scores, average_precision),
+            "pr_auc_rules": bootstrap_ci(y_test, rule_scores, average_precision),
+            "pr_auc_full_pipeline": bootstrap_ci(
+                pipeline_labels, pipeline_scores, average_precision
+            ),
+            "delta_pr_auc_graph_minus_non_graph": paired_bootstrap_delta(
+                y_test, graph_scores, base_scores, average_precision
+            ),
+            "delta_pr_auc_graph_minus_rules": paired_bootstrap_delta(
+                y_test, graph_scores, rule_scores, average_precision
+            ),
+        },
+        "calibration_curve_calibrated": reliability_bins(y_test, calibrated_scores),
+        "calibration_note": (
+            "Reliability bins are computed on the holdout after fitting the Platt "
+            "calibrator on the earlier calibration slice."
+        ),
+        "bootstrap_note": (
+            "Percentile intervals over 500 seeded resamples of the holdout. The "
+            "holdout is small, so intervals are wide and overlap is common."
+        ),
+    }
+    metrics["ablation"] = {
+        name: {
+            key: value[key]
+            for key in (
+                "pr_auc_average_precision",
+                "roc_auc",
+                "precision",
+                "recall",
+                "f1",
+            )
+        }
+        for name, value in ablation["groups"].items()
+    }
+    metrics["graph_summary"] = graph_summary(transactions)
     MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
     save_model(graph_model, MODEL_FILE)
     save_model(base_model, DATA_DIR / "baseline_model.json")
@@ -230,6 +319,10 @@ def train_and_evaluate(model_name: str = "logistic") -> dict[str, Any]:
         encoding="utf-8",
     )
     METRICS_FILE.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    (DATA_DIR / "ablation.json").write_text(json.dumps(ablation, indent=2), encoding="utf-8")
+    (DATA_DIR / "graph_summary.json").write_text(
+        json.dumps(metrics["graph_summary"], indent=2), encoding="utf-8"
+    )
     return metrics
 
 

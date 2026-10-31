@@ -10,17 +10,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Protocol
+
+from meshshield.core.domain import Transaction
 
 Edge = tuple[str, str]
 
 
-class _HasAccountDevice(Protocol):
-    account_id: str
-    device_id: str
-
-
-def account_device_edges(transactions: Iterable[_HasAccountDevice]) -> set[Edge]:
+def account_device_edges(transactions: Iterable[Transaction]) -> set[Edge]:
     """Distinct account-device edges from any objects with those two attributes."""
     edges: set[Edge] = set()
     for tx in transactions:
@@ -106,7 +102,7 @@ def _label_propagation(adjacency: dict[str, set[str]]) -> dict[str, int]:
     return {node: ordered[label] for node, label in sorted(labels.items())}
 
 
-def graph_summary(transactions: Iterable[_HasAccountDevice], top_n: int = 10) -> dict[str, object]:
+def graph_summary(transactions: Iterable[Transaction], top_n: int = 10) -> dict[str, object]:
     """Top PageRank nodes and community sizes for a finished event stream."""
     edges = account_device_edges(transactions)
     ranks = pagerank(edges)
