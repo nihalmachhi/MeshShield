@@ -29,9 +29,12 @@ from meshshield.security.rules import inspect_event_order, inspect_transaction
 
 
 def generate_dataset(
-    count: int = DEFAULT_TRANSACTION_COUNT, seed: int = DEFAULT_SEED
+    count: int = DEFAULT_TRANSACTION_COUNT,
+    seed: int = DEFAULT_SEED,
+    profile: str = "easy",
+    label_noise: float = 0.0,
 ) -> dict[str, Any]:
-    transactions, events = generate(count, seed)
+    transactions, events = generate(count, seed, profile=profile, label_noise=label_noise)
     shuffled = list(zip(transactions, events, strict=True))
     random.Random(seed).shuffle(shuffled)
     # Files model arrival order (not event-time order), preserving late syncs.
@@ -39,20 +42,42 @@ def generate_dataset(
     write_jsonl(EVENTS_FILE, (event.to_dict() for _, event in shuffled))
     card = {
         "dataset_name": "meshshield_synthetic_offline_payments",
-        "version": 1,
+        "version": 2,
         "seed": seed,
+        "profile": profile,
+        "label_noise": label_noise,
         "transaction_count": count,
         "positive_count": sum(tx.label == 1 for tx in transactions),
+        "negative_count": sum(tx.label == 0 for tx in transactions),
+        "device_count": len({tx.device_id for tx in transactions}),
+        "account_count": len({tx.account_id for tx in transactions}),
         "scenarios": {
             scenario: sum(tx.scenario == scenario for tx in transactions)
             for scenario in sorted({tx.scenario for tx in transactions})
         },
         "data_origin": "synthetically generated; no real personal or payment data",
         "ground_truth": "scenario labels assigned by the simulator, not verified fraud outcomes",
+        "generator_parameters": {
+            "count": count,
+            "seed": seed,
+            "profile": profile,
+            "label_noise": label_noise,
+            "benign_shared_devices": 8,
+            "amount_rule_threshold": 250,
+            "device_count": 200,
+            "account_count": 240,
+            "merchant_count": 45,
+        },
         "limitations": [
             "Synthetic patterns are simplified and may not match real fraud.",
             "Metrics measure recovery of generator labels only.",
             "Not validated for live payment or account decisions.",
+        ],
+        "blind_spots": [
+            "No adversarial adaptation: scenarios change, attackers do not respond.",
+            "No real merchant or issuer behaviour, refunds, chargebacks or disputes.",
+            "No cross-border, multi-currency or regulatory constraints.",
+            "Clock skew is a seeded model, not measured from hardware.",
         ],
     }
     DATA_DIR.mkdir(parents=True, exist_ok=True)

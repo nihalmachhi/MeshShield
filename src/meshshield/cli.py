@@ -19,6 +19,18 @@ def main() -> None:
     generate_cmd = commands.add_parser("generate", help="Generate a reproducible synthetic dataset")
     generate_cmd.add_argument("--count", type=int, default=DEFAULT_TRANSACTION_COUNT)
     generate_cmd.add_argument("--seed", type=int, default=DEFAULT_SEED)
+    generate_cmd.add_argument(
+        "--profile",
+        choices=("easy", "hard"),
+        default="easy",
+        help="easy keeps the original scenarios; hard adds rings, slow burns and evasion",
+    )
+    generate_cmd.add_argument(
+        "--label-noise",
+        type=float,
+        default=0.0,
+        help="share of rows whose label is flipped (0 to 0.5)",
+    )
     commands.add_parser("train", help="Train and compare the baseline models")
     commands.add_parser("evaluate", help="Print the latest chronological holdout metrics")
     commands.add_parser("demo", help="Run generation, model comparison, and sync replay summary")
@@ -27,7 +39,14 @@ def main() -> None:
     serve_cmd.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
     if args.command == "generate":
-        print(json.dumps(generate_dataset(args.count, args.seed), indent=2))
+        print(
+            json.dumps(
+                generate_dataset(
+                    args.count, args.seed, profile=args.profile, label_noise=args.label_noise
+                ),
+                indent=2,
+            )
+        )
     elif args.command == "train":
         print(json.dumps(train_and_evaluate(), indent=2))
     elif args.command == "evaluate":

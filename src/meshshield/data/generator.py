@@ -84,6 +84,9 @@ def generate(
         raise ValueError("label_noise must be in [0, 0.5)")
 
     rng = random.Random(seed)
+    # Label noise uses its own stream so enabling it never shifts the main
+    # sequence: the same seed still generates the same underlying events.
+    noise_rng = random.Random(seed ^ 0x5EED)
     origin = start or datetime(2025, 1, 1, tzinfo=UTC)
     accounts = [f"acct_{i:04d}" for i in range(240)]
     devices = [f"device_{i:04d}" for i in range(200)]
@@ -96,16 +99,30 @@ def generate(
     events: list[SyncEvent] = []
     signature_pool: list[str] = []
     slow_burn_accounts = set(accounts[40:52]) if profile == "hard" else set()
+    ring_accounts = accounts[:12] if profile == "hard" else []
+    ring_devices = devices[benign_shared_devices : benign_shared_devices + 3]
+    ring_merchants = merchants[:4]
 
     for index in range(count):
-        account = rng.choice(accounts)
+        if profile == "hard" and index > count * 0.7 and rng.random() < 0.25:
+            # The slow-burn cohort wakes up late in the window.
+            account = rng.choice(sorted(slow_burn_accounts))
+        else:
+            account = rng.choice(accounts)
         scenario = _choose_scenario(rng, profile, index, slow_burn_accounts, account)
-        if scenario in ("shared_device", "fraud_ring"):
+        if scenario == "fraud_ring" and ring_accounts:
+            account = rng.choice(ring_accounts)
+            device = rng.choice(ring_devices)
+        elif scenario == "shared_device":
             device = rng.choice(hub_devices)
         elif scenario == "device_rotation":
             device = devices[(index * 7) % len(devices)]
         else:
             device = account_device.setdefault(account, rng.choice(devices))
+        if scenario == "normal" and rng.random() < 0.12:
+            # Benign confounder: a family phone or a shop terminal is shared by
+            # ordinary customers, so "shared device" is not a perfect signal.
+            device = rng.choice(hub_devices)
 
         true_time = origin + timedelta(minutes=index * 8 + rng.randrange(8))
         clock = clocks[device]
@@ -117,6 +134,8 @@ def generate(
         if scenario == "structuring":
             # Deliberately just under the 250 amount rule.
             amount = round(rng.uniform(232.0, 249.0), 2)
+        if scenario == "slow_burn" and index > count * 0.7:
+            amount = round(rng.uniform(300, 800), 2)
         if scenario in ("replay_attempt", "invalid_signature", "fraud_ring"):
             amount = round(rng.uniform(120, 700), 2)
 
@@ -129,12 +148,17 @@ def generate(
         if scenario == "replay_attempt" and events:
             event_id = rng.choice(events).event_id
 
+        if scenario == "fraud_ring":
+            merchant = rng.choice(ring_merchants)
+        else:
+            merchant = rng.choice(merchants)
+
         device_counters[device] += 1
         transaction = Transaction(
             transaction_id=tx_id,
             account_id=account,
             device_id=device,
-            merchant_id=rng.choice(merchants),
+            merchant_id=merchant,
             amount=amount,
             currency="USD",
             event_time=_iso(device_time),
@@ -154,7 +178,7 @@ def generate(
             transaction = _with_signature(transaction, rng.choice(signature_pool))
         signature_pool.append(transaction.signature)
 
-        if label_noise and rng.random() < label_noise:
+        if label_noise and noise_rng.random() < label_noise:
             transaction = _with_label(transaction, 1 - int(transaction.label or 0))
         transaction = _with_signature_valid(transaction, _signature_ok(transaction))
         transactions.append(transaction)
