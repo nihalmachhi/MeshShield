@@ -42,4 +42,10 @@ FEATURES = (
 GRAPH_FEATURES = FEATURES + (
     "account_device_degree",
     "device_recent_accounts_24h",
+    "device_transaction_count",
+    "merchant_device_degree",
+    "account_merchant_degree",
+    "two_hop_account_reach",
+    "account_component_size",
+    "device_component_size",
 )

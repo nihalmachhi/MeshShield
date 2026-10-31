@@ -29,27 +29,32 @@ Proofs: `tests/test_features_no_leakage.py`, `tests/test_out_of_order_sync.py`.
 | `hour_sin`, `hour_cos` | Cyclical encoding of the device-clock hour | The row itself | Uses the device clock, which is available at event time. |
 | `account_velocity_1h` | Count of earlier events for the same account | `[t-1h, t)` | Only earlier events enter the deque. |
 | `merchant_velocity_1h` | Count of earlier events for the same merchant | `[t-1h, t)` | Same deque rule. |
-| `device_accounts_seen` | Distinct accounts seen on the device | All earlier events | Set is updated after the timestamp group. |
 | `offline_duration_minutes` | `ingestion_time - event_time` | The row itself | Known when the event arrives. |
 | `is_delayed_sync` | `offline_duration_minutes >= 30` | The row itself | Derived from the field above. |
 | `account_transaction_count` | Count of earlier events for the account | All earlier events | Counter incremented after the group. |
-| `account_device_degree` | Distinct devices used by the account | All earlier events | Set updated after the group. |
-| `device_recent_accounts_24h` | Distinct accounts on the device | `[t-24h, t)` | Deque pruned at `t`, updated after the group. |
 
 ## Graph features
 
+These extend `FEATURES` and are only present in `GRAPH_FEATURES`. All of them are
+maintained incrementally from the causal snapshot; no graph is rebuilt from the
+full file. The union-find component sizes include both account and device nodes.
+
 | Feature | Definition | Window | Leakage argument |
 | --- | --- | --- | --- |
-| `graph_component_size` | Size of the account–device–merchant component containing the account, built only from earlier events | All earlier events | Components are rebuilt from the causal snapshot at `t`. |
-| `graph_two_hop_size` | Nodes within two hops of the account in the causal graph | All earlier events | Same snapshot. |
-| `graph_account_degree` | Number of graph neighbours of the account | All earlier events | Same snapshot. |
-| `graph_device_degree` | Number of graph neighbours of the device | All earlier events | Same snapshot. |
-| `graph_pagerank` | PageRank of the account in the causal snapshot | All earlier events | Optional, requires `networkx`; absent values are written as `0.0` and flagged in `docs/evaluation.md`. |
-| `graph_community_id` | Community label (label propagation) of the account | All earlier events | Optional, requires `networkx`. |
+| `device_accounts_seen` | Distinct accounts seen on the device | All earlier events | Set is updated after the timestamp group. |
+| `account_device_degree` | Distinct devices used by the account | All earlier events | Set updated after the group. |
+| `device_recent_accounts_24h` | Distinct accounts on the device | `[t-24h, t)` | Deque pruned at `t`, updated after the group. |
+| `device_transaction_count` | Earlier transactions on the device | All earlier events | Counter incremented after the group. |
+| `merchant_device_degree` | Distinct devices seen at the merchant | All earlier events | Set updated after the group. |
+| `account_merchant_degree` | Distinct merchants seen for the account | All earlier events | Set updated after the group. |
+| `two_hop_account_reach` | Distinct accounts that share a device with any of the account's earlier devices | All earlier events | Reads only sets built from earlier events. |
+| `account_component_size` | Size of the earlier union-find component containing the account | All earlier events | `0.0` when the account has no history yet. |
+| `device_component_size` | Size of the earlier union-find component containing the device | All earlier events | `0.0` when the device has no history yet. |
 
-The graph is maintained **incrementally**: edges from a timestamp group are added
-after that group's rows are computed. Building one global graph and looking up a
-past transaction is the classic leak this design rejects.
+`src/meshshield/features/graph.py` adds snapshot-only PageRank and community
+labels for reports and the dashboard. Those statistics are **not** training
+features: computing PageRank over the finished graph and attaching it to a past
+row would leak future edges.
 
 ## Clock-skew policy
 
