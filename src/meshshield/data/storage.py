@@ -39,7 +39,10 @@ class IdempotencyStore:
         self.connection = sqlite3.connect(path, check_same_thread=False)
         self._lock = RLock()
         self.connection.execute(
-            "CREATE TABLE IF NOT EXISTS processed_events (event_id TEXT PRIMARY KEY, transaction_id TEXT NOT NULL, accepted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+            "CREATE TABLE IF NOT EXISTS processed_events ("
+            "event_id TEXT PRIMARY KEY, "
+            "transaction_id TEXT NOT NULL, "
+            "accepted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
         )
         self.connection.commit()
 
@@ -55,6 +58,12 @@ class IdempotencyStore:
     def close(self) -> None:
         with self._lock:
             self.connection.close()
+
+    def __enter__(self) -> "IdempotencyStore":
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        self.close()
 
 
 def load_transactions(path: Path) -> list[Transaction]:

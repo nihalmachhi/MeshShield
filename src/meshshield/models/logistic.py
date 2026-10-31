@@ -62,7 +62,7 @@ class LogisticModel:
         weights, bias = [0.0] * width, 0.0
         previous_loss = float("inf")
         stable_epochs = 0
-        for epoch in range(epochs):
+        for _epoch in range(epochs):
             grad = [0.0] * width
             grad_bias = 0.0
             loss = 0.0

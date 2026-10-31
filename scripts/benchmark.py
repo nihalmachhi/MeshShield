@@ -28,7 +28,10 @@ def main() -> None:
         "elapsed_seconds": round(elapsed_seconds, 4),
         "rows_per_second": round(args.count / elapsed_seconds, 2),
         "holdout_metrics": metrics["graph_model_calibrated"],
-        "note": "One local synthetic run; timings depend on the machine and are not a production benchmark.",
+        "note": (
+            "One local synthetic run; timings depend on the machine "
+            "and are not a production benchmark."
+        ),
     }
     output = Path("output/benchmarks")
     output.mkdir(parents=True, exist_ok=True)

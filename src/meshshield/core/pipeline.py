@@ -32,7 +32,7 @@ def generate_dataset(
     count: int = DEFAULT_TRANSACTION_COUNT, seed: int = DEFAULT_SEED
 ) -> dict[str, Any]:
     transactions, events = generate(count, seed)
-    shuffled = list(zip(transactions, events))
+    shuffled = list(zip(transactions, events, strict=True))
     random.Random(seed).shuffle(shuffled)
     # Files model arrival order (not event-time order), preserving late syncs.
     write_jsonl(TRANSACTIONS_FILE, (tx.to_dict() for tx, _ in shuffled))
@@ -75,17 +75,24 @@ def _rule_score(tx: Transaction, features: dict[str, float]) -> float:
     return min(score, 1.0)
 
 
+def split_chronologically(
+    transactions: list[Transaction], train_fraction: float = 0.8
+) -> tuple[list[Transaction], list[Transaction]]:
+    """Split on event time so every training row precedes every holdout row."""
+    ordered = sorted(
+        transactions, key=lambda tx: (parse_timestamp(tx.event_time), tx.transaction_id)
+    )
+    cut = split_index(len(ordered), train_fraction)
+    return ordered[:cut], ordered[cut:]
+
+
 def train_and_evaluate() -> dict[str, Any]:
     transactions = load_transactions(TRANSACTIONS_FILE)
     if len(transactions) < 100:
         raise ValueError("Dataset missing or too small. Run `meshshield generate` first.")
     features = build_features(transactions)
     # Time split by event time, with all graph history constructed causally.
-    ordered = sorted(
-        transactions, key=lambda tx: (parse_timestamp(tx.event_time), tx.transaction_id)
-    )
-    cut = split_index(len(ordered))
-    train, test = ordered[:cut], ordered[cut:]
+    train, test = split_chronologically(transactions)
     calibration_cut = split_index(len(train), 0.8)
     model_train, calibration = train[:calibration_cut], train[calibration_cut:]
     labels_train = [int(tx.label or 0) for tx in model_train]
@@ -116,7 +123,9 @@ def train_and_evaluate() -> dict[str, Any]:
     rule_scores = [_rule_score(t, features[t.transaction_id]) for t in test]
     # Integrity checks run in ingestion order so only already-arrived events count.
     test_ids = {tx.transaction_id for tx in test}
-    graph_score_by_id = {tx.transaction_id: score for tx, score in zip(test, graph_scores)}
+    graph_score_by_id = {
+        tx.transaction_id: score for tx, score in zip(test, graph_scores, strict=True)
+    }
     seen_tx_ids: set[str] = set()
     seen_event_ids: set[str] = set()
     pipeline_labels: list[int] = []
@@ -165,7 +174,10 @@ def train_and_evaluate() -> dict[str, Any]:
             "review_capacity": REVIEW_CAPACITY,
             "calibration_samples": len(calibration),
         },
-        "threshold_note": "The cost weights and capacity are explicit demo assumptions, not operational recommendations.",
+        "threshold_note": (
+            "The cost weights and capacity are explicit demo assumptions, "
+            "not operational recommendations."
+        ),
     }
     MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
     graph_model.save(MODEL_FILE)

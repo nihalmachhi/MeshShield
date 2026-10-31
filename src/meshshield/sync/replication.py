@@ -28,7 +28,8 @@ def merge_event_sets(*replicas: list[dict[str, Any]]) -> MergeResult:
     conflicts = tuple(
         sorted(event_id for event_id, versions in payloads.items() if len(versions) > 1)
     )
-    # A stable representative keeps the merge associative and commutative; conflicts stay quarantined.
+    # A stable representative keeps the merge associative and commutative;
+    # conflicts stay quarantined.
     merged = tuple(json.loads(min(versions)) for _, versions in sorted(payloads.items()))
     return MergeResult(events=merged, conflicting_event_ids=conflicts)
 
