@@ -80,7 +80,7 @@ device, capped at the last 50 observations
 | `rules` | No features; deterministic thresholds over amount, delay, device and velocity. |
 | `logistic` | `FEATURES` |
 | `logistic-graph` | `GRAPH_FEATURES` |
-| `isolation-forest` | `GRAPH_FEATURES`, unsupervised (`boost` extra) |
+| `isolation-forest` | `GRAPH_FEATURES`, unsupervised (stdlib, label-free) |
 | `lightgbm` | `GRAPH_FEATURES` (`boost` extra) |
 
 All models share one chronological split. Calibration is fitted inside the
