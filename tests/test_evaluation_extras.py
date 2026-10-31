@@ -83,9 +83,12 @@ def test_pipeline_writes_ablation_and_bootstrap(isolated_paths: dict[str, Path])
     metrics = pipeline.train_and_evaluate()
     assert metrics["ablation"]["graph_full"]["roc_auc"] >= 0.0
     assert "graph_only" in metrics["ablation"]
-    assert metrics["evaluation_extras"]["bootstrap_95pct"]["delta_pr_auc_graph_minus_non_graph"][
-        "resamples"
-    ] > 0
+    assert (
+        metrics["evaluation_extras"]["bootstrap_95pct"]["delta_pr_auc_graph_minus_non_graph"][
+            "resamples"
+        ]
+        > 0
+    )
     ablation = json.loads((isolated_paths["data"] / "ablation.json").read_text(encoding="utf-8"))
     assert ablation["model"] == "logistic"
     assert "features" in ablation["groups"]["transaction_only"]

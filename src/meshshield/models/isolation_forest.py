@@ -30,7 +30,8 @@ def _build_tree(
     if depth >= height or len(rows) <= 1:
         return {"s": len(rows)}
     candidate = [
-        feature for feature in rng.sample(range(width), width)
+        feature
+        for feature in rng.sample(range(width), width)
         if max(row[feature] for row in rows) > min(row[feature] for row in rows)
     ]
     if not candidate:

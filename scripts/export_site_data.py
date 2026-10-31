@@ -46,15 +46,14 @@ def main() -> None:
                 metrics["evaluation_extras"]["bootstrap_95pct"]["pr_auc_graph"]["resamples"]
             ),
             "note": (
-                "Percentile intervals over seeded resamples; the holdout is small, so intervals are wide."
+                "Percentile intervals over seeded resamples; the holdout is small, "
+                "so intervals are wide."
             ),
         },
     }
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(
-        "export const results = "
-        + json.dumps(source, indent=2, sort_keys=True)
-        + ";\n",
+        "export const results = " + json.dumps(source, indent=2, sort_keys=True) + ";\n",
         encoding="utf-8",
     )
     print(f"wrote {OUTPUT_PATH}")

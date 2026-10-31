@@ -148,8 +148,7 @@ def _ablation(
             columns,
         )
         scores = [
-            model.score([features[tx.transaction_id][column] for column in columns])
-            for tx in test
+            model.score([features[tx.transaction_id][column] for column in columns]) for tx in test
         ]
         groups[name] = {"features": list(columns), **evaluate(y_test, scores)}
     return {
@@ -330,9 +329,7 @@ def load_events() -> list[SyncEvent]:
     return [SyncEvent(**row) for row in read_jsonl(EVENTS_FILE)]
 
 
-def load_or_prepare() -> tuple[
-    list[Transaction], dict[str, Any], Any, PlattCalibrator, float
-]:
+def load_or_prepare() -> tuple[list[Transaction], dict[str, Any], Any, PlattCalibrator, float]:
     if not TRANSACTIONS_FILE.exists():
         generate_dataset()
     if not MODEL_FILE.exists() or not METRICS_FILE.exists() or not CALIBRATION_FILE.exists():

@@ -74,13 +74,10 @@ def evaluate_public(
         )
         threshold = float(policy["threshold"])
         calibrated_test = [
-            calibrator.apply(graph_model.score(vector(features[tx.transaction_id])))
-            for tx in test
+            calibrator.apply(graph_model.score(vector(features[tx.transaction_id]))) for tx in test
         ]
     else:
-        calibrated_test = [
-            graph_model.score(vector(features[tx.transaction_id])) for tx in test
-        ]
+        calibrated_test = [graph_model.score(vector(features[tx.transaction_id])) for tx in test]
     labels_test = [int(tx.label or 0) for tx in test]
     return {
         "dataset": {

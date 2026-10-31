@@ -99,9 +99,7 @@ def build_features(transactions: list[Transaction]) -> dict[str, dict[str, float
                 "merchant_device_degree": float(len(merchant_devices[tx.merchant_id])),
                 "account_merchant_degree": float(len(account_merchants[tx.account_id])),
                 "two_hop_account_reach": float(len(reachable)),
-                "account_component_size": components.component_size(
-                    f"account:{tx.account_id}"
-                ),
+                "account_component_size": components.component_size(f"account:{tx.account_id}"),
                 "device_component_size": components.component_size(f"device:{tx.device_id}"),
             }
         # Events sharing a timestamp become visible only after every peer's row.

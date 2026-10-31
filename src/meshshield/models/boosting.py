@@ -37,9 +37,7 @@ class LightGBMModel:
         try:
             import lightgbm as lgb
         except ImportError as exc:
-            raise RuntimeError(
-                "Install MeshShield with the 'boost' extra to use LightGBM"
-            ) from exc
+            raise RuntimeError("Install MeshShield with the 'boost' extra to use LightGBM") from exc
         positives = sum(labels)
         negatives = len(labels) - positives
         classifier = lgb.LGBMClassifier(
@@ -56,9 +54,7 @@ class LightGBMModel:
         classifier.fit(rows, labels)
         booster = classifier.booster_
         gains = booster.feature_importance(importance_type="gain")
-        importances = {
-            name: float(gain) for name, gain in zip(feature_names, gains, strict=True)
-        }
+        importances = {name: float(gain) for name, gain in zip(feature_names, gains, strict=True)}
         return cls(feature_names, booster.model_to_string(), importances)
 
     def _booster(self) -> Any:

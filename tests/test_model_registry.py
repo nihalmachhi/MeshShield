@@ -90,4 +90,3 @@ def test_pipeline_trains_and_reloads_an_anomaly_model(isolated_paths: dict[str, 
     loaded = load_model(isolated_paths["model"])
     assert isinstance(loaded, IsolationForestModel)
     assert loaded.feature_names == GRAPH_FEATURES
-

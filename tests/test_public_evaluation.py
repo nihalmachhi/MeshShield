@@ -15,9 +15,7 @@ def test_public_evaluator_reports_real_holdout_metrics() -> None:
     transactions, _ = generate(400, seed=31, profile="easy")
     # Public adapters set every delay to zero; mirror that so the test measures
     # the evaluator rather than offline-sync features the data will not have.
-    transactions = [
-        replace(tx, offline_duration_minutes=0) for tx in transactions
-    ]
+    transactions = [replace(tx, offline_duration_minutes=0) for tx in transactions]
     result = evaluate_public(transactions)
     assert result["dataset"]["rows"] == 400
     assert result["dataset"]["test"] == 80
