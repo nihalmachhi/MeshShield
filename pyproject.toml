@@ -4,19 +4,54 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "meshshield"
-version = "0.1.0"
-description = "A reproducible research simulator for offline payment fraud risk."
-license = "MIT"
+version = "0.2.0"
+description = "Offline payment risk research simulator: point-in-time features, integrity checks, and explainable synthetic scores."
+readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.11"
+authors = [{ name = "Nihal Machhi" }]
+keywords = [
+  "fraud-detection",
+  "offline-payments",
+  "synthetic-data",
+  "idempotency",
+  "event-time",
+  "point-in-time-features",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Security",
+  "Typing :: Typed",
+]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["cryptography>=42", "mypy>=1.10", "pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6"]
-data = ["kaggle>=1.6"]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "hypothesis>=6.100",
+  "ruff>=0.6",
+  "mypy>=1.10",
+]
 crypto = ["cryptography>=42"]
-graph = ["torch>=2.2", "torch-geometric>=2.5"]
-boosted = ["xgboost>=2.0"]
-anomaly = ["scikit-learn>=1.4"]
+graph = ["networkx>=3.2"]
+boost = ["lightgbm>=4.3", "scikit-learn>=1.4"]
+docs = ["reportlab>=4.0"]
+data = ["kaggle>=1.6"]
+
+[project.urls]
+Homepage = "https://nihalmachhi.github.io/MeshShield/"
+Repository = "https://github.com/nihalmachhi/MeshShield"
+Issues = "https://github.com/nihalmachhi/MeshShield/issues"
+Documentation = "https://github.com/nihalmachhi/MeshShield/tree/main/docs"
 
 [project.scripts]
 meshshield = "meshshield.cli:main"
@@ -28,6 +63,9 @@ where = ["src"]
 line-length = 100
 target-version = "py311"
 
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
 [tool.mypy]
 mypy_path = "src"
 python_version = "3.11"
@@ -35,6 +73,21 @@ strict = true
 ignore_missing_imports = true
 follow_imports = "skip"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
 [tool.coverage.run]
 branch = true
 source = ["meshshield"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]
